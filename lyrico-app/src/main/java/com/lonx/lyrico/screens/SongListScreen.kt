@@ -124,7 +124,6 @@ import com.lonx.lyrico.viewmodel.SortOrder
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.BatchEditDestination
-import com.ramcosta.composedestinations.generated.destinations.BatchMatchHistoryDetailDestination
 import com.ramcosta.composedestinations.generated.destinations.BatchRenameDestination
 import com.ramcosta.composedestinations.generated.destinations.SettingsDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -324,12 +323,16 @@ fun SongListScreen(
                                 val compactTopBar = maxWidth < 360.dp
 
                                 SmallTopAppBar(
-                                    title = stringResource(
-                                        R.string.selection_mode_selected_count,
-                                        selectedSongIds.size
-                                    ),
+                                    title = "",
                                     scrollBehavior = topAppBarScrollBehavior,
-                                    navigationIcon = {},
+                                    navigationIcon = {
+                                        Text(
+                                            text = stringResource(
+                                                R.string.selection_mode_selected_count,
+                                                selectedSongIds.size
+                                            )
+                                        )
+                                    },
                                     actions = {
                                         if (!compactTopBar) {
                                             TextButton(
@@ -379,31 +382,36 @@ fun SongListScreen(
                                     .windowInsetsPadding(WindowInsets.statusBars)
                                     .padding(vertical = 8.dp)
                             ) {
-                                SearchBar(
-                                    modifier = Modifier.padding(horizontal = 12.dp),
-                                    value = songListUiState.searchQuery,
-                                    onValueChange = {
-                                        songListViewModel.onSearchQueryChanged(it)
-                                    },
-                                    placeholder = stringResource(id = R.string.local_search_hint),
-                                    actions = {
-                                        TextButton(
-                                            onClick = {
-                                                isSearchMode = false
-                                                songListViewModel.clearSearch()
+                                BoxWithConstraints {
+                                    val compactTopBar = maxWidth < 360.dp
+                                    SearchBar(
+                                        modifier = Modifier.padding(horizontal = 12.dp),
+                                        value = songListUiState.searchQuery,
+                                        onValueChange = {
+                                            songListViewModel.onSearchQueryChanged(it)
+                                        },
+                                        placeholder = stringResource(id = R.string.local_search_hint),
+                                        actions = if (compactTopBar) null else {
+                                            {
+                                                TextButton(
+                                                    onClick = {
+                                                        isSearchMode = false
+                                                        songListViewModel.clearSearch()
+                                                    }
+                                                ) {
+                                                    Text(
+                                                        text = stringResource(R.string.action_close),
+                                                        color = MiuixTheme.colorScheme.primary,
+                                                        style = MiuixTheme.textStyles.main
+                                                    )
+                                                }
                                             }
-                                        ) {
-                                            Text(
-                                                text = stringResource(R.string.action_close),
-                                                color = MiuixTheme.colorScheme.primary,
-                                                style = MiuixTheme.textStyles.main
-                                            )
+                                        },
+                                        onSearch = {
+                                            songListViewModel.onSearchQueryChanged(songListUiState.searchQuery)
                                         }
-                                    },
-                                    onSearch = {
-                                        songListViewModel.onSearchQueryChanged(songListUiState.searchQuery)
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
 
@@ -618,9 +626,6 @@ fun SongListScreen(
                     },
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
-                        .windowInsetsPadding(WindowInsets.statusBars)
-                        .windowInsetsPadding(WindowInsets.navigationBars)
-                        .padding(end = 4.dp)
                 )
             }
             val song = sheetUiState.menuSong
@@ -892,16 +897,13 @@ fun SongListScreen(
                         Spacer(Modifier.width(20.dp))
                         top.yukonga.miuix.kmp.basic.TextButton(
                             text = if (batchMatchUiState.isBatchMatching) stringResource(R.string.action_abort) else stringResource(
-                                R.string.action_view_results
+                                R.string.confirm
                             ),
                             onClick = {
                                 if (batchMatchUiState.isBatchMatching) {
                                     batchMatchViewModel.abortBatchMatch()
                                 } else {
                                     batchMatchViewModel.closeBatchMatchDialog()
-                                    navigator.navigate(
-                                        BatchMatchHistoryDetailDestination(batchMatchUiState.batchHistoryId)
-                                    )
                                 }
                             },
                             modifier = Modifier.weight(1f),

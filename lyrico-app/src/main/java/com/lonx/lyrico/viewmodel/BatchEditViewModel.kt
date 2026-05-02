@@ -10,10 +10,16 @@ import com.lonx.audiotag.model.AudioTagData
 import com.lonx.audiotag.model.CustomTagField
 import com.lonx.lyrico.R
 import com.lonx.lyrico.data.SharedSelectionManager
+import com.lonx.lyrico.data.model.BatchTaskStatus
+import com.lonx.lyrico.data.model.BatchTaskType
+import com.lonx.lyrico.data.repository.BatchTaskRepository
 import com.lonx.lyrico.data.repository.SongRepository
 import com.lonx.lyrico.utils.LyricEncoder
 import com.lonx.lyrico.utils.UiMessage
 import com.lonx.lyrico.utils.UriUtils
+import com.lonx.lyrico.worker.BatchTaskScheduler
+import com.lonx.lyrico.worker.processor.EditTagsCustomField
+import com.lonx.lyrico.worker.processor.EditTagsTaskConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -105,12 +112,16 @@ data class BatchEditUiState(
 class BatchEditViewModel(
     private val songRepository: SongRepository,
     private val selectionManager: SharedSelectionManager,
+    private val batchTaskRepository: BatchTaskRepository,
+    private val batchTaskScheduler: BatchTaskScheduler,
     private val application: Application
 ) : ViewModel() {
 
     private val TAG = "BatchEditVM"
     private val contentResolver = application.contentResolver
     private var saveJob: Job? = null
+    private var observeJob: Job? = null
+    private var currentTaskId: String? = null
 
     private val _uiState = MutableStateFlow(BatchEditUiState())
     val uiState: StateFlow<BatchEditUiState> = _uiState.asStateFlow()
@@ -122,6 +133,12 @@ class BatchEditViewModel(
         val uris = selectionManager.selectedUris.value.toList()
         selectedUris = uris
         _uiState.update { it.copy(songCount = uris.size) }
+        viewModelScope.launch {
+            val runningTask = batchTaskRepository.getRunningTaskByType(BatchTaskType.EDIT_TAGS)
+            if (runningTask != null) {
+                resumeObservingTask(runningTask.taskId)
+            }
+        }
     }
 
 
@@ -259,6 +276,143 @@ class BatchEditViewModel(
     // ── 批量保存 ──────────────────────────────────────────
 
     fun saveBatchEdit() {
+        val state = _uiState.value
+        if (state.isSaving || selectedUris.isEmpty()) return
+
+        saveJob = viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isSaving = true,
+                    saveProgressBottomSheet = true,
+                    saveProgress = 0,
+                    saveTotal = selectedUris.size,
+                    currentFile = "",
+                    successCount = 0,
+                    failureCount = 0,
+                    saveTimeMillis = 0,
+                    saveSuccess = null,
+                    saveResultMessage = null,
+                    errorMessage = null
+                )
+            }
+
+            val songs = selectedUris.mapNotNull { uri ->
+                songRepository.getSongByUri(uri)
+            }
+            if (songs.isEmpty()) {
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        saveProgressBottomSheet = false,
+                        errorMessage = UiMessage.StringResource(R.string.no_song_selected)
+                    )
+                }
+                return@launch
+            }
+
+            val configJson = Json.encodeToString(
+                EditTagsTaskConfig.serializer(),
+                state.toTaskConfig()
+            )
+            val taskId = batchTaskRepository.createTask(
+                type = BatchTaskType.EDIT_TAGS,
+                songs = songs,
+                configJson = configJson
+            )
+            batchTaskScheduler.enqueue(taskId)
+            resumeObservingTask(taskId)
+        }
+    }
+
+    private fun resumeObservingTask(taskId: String) {
+        observeJob?.cancel()
+        currentTaskId = taskId
+        _uiState.update {
+            it.copy(
+                isSaving = true,
+                saveProgressBottomSheet = true,
+                saveProgress = 0,
+                saveTotal = 0,
+                currentFile = "",
+                successCount = 0,
+                failureCount = 0,
+                saveTimeMillis = 0,
+                saveSuccess = null,
+                saveResultMessage = null,
+                errorMessage = null
+            )
+        }
+        observeJob = viewModelScope.launch {
+            batchTaskRepository.observeTask(taskId).collect { task ->
+                if (task == null) return@collect
+                val isRunning = task.status == BatchTaskStatus.RUNNING ||
+                        task.status == BatchTaskStatus.QUEUED
+                val duration = if (!isRunning && task.startedAt != null && task.finishedAt != null) {
+                    task.finishedAt - task.startedAt
+                } else {
+                    0L
+                }
+                _uiState.update {
+                    it.copy(
+                        isSaving = isRunning,
+                        saveProgressBottomSheet = true,
+                        saveProgress = task.current,
+                        saveTotal = task.total,
+                        currentFile = task.currentFile ?: "",
+                        successCount = task.successCount,
+                        failureCount = task.failureCount,
+                        saveTimeMillis = duration,
+                        saveSuccess = if (isRunning) null else task.status == BatchTaskStatus.SUCCEEDED && task.failureCount == 0,
+                        saveResultMessage = if (isRunning) {
+                            null
+                        } else {
+                            UiMessage.StringResource(
+                                R.string.batch_edit_result_summary,
+                                task.successCount,
+                                task.total,
+                                task.failureCount
+                            )
+                        }
+                    )
+                }
+                if (!isRunning) {
+                    currentTaskId = null
+                    observeJob?.cancel()
+                }
+            }
+        }
+    }
+
+    private fun BatchEditUiState.toTaskConfig(): EditTagsTaskConfig {
+        return EditTagsTaskConfig(
+            title = title,
+            artist = artist,
+            albumArtist = albumArtist,
+            album = album,
+            date = date,
+            genre = genre,
+            trackNumber = trackNumber,
+            discNumber = discNumber,
+            composer = composer,
+            lyricist = lyricist,
+            copyright = copyright,
+            comment = comment,
+            lyrics = lyrics,
+            rating = rating,
+            ratingModified = ratingModified,
+            coverUri = coverUri?.toString(),
+            removeCover = removeCover,
+            lyricsOffset = lyricsOffset,
+            replayGainTrackGain = replayGainTrackGain,
+            replayGainTrackPeak = replayGainTrackPeak,
+            replayGainAlbumGain = replayGainAlbumGain,
+            replayGainAlbumPeak = replayGainAlbumPeak,
+            replayGainReferenceLoudness = replayGainReferenceLoudness,
+            customFields = customFields.map { EditTagsCustomField(it.key, it.value) }
+        )
+    }
+
+    private fun saveBatchEditLegacy() {
         val state = _uiState.value
         if (state.isSaving || selectedUris.isEmpty()) return
 
@@ -479,6 +633,13 @@ class BatchEditViewModel(
      * 中止保存
      */
     fun abortSave() {
+        val taskId = currentTaskId
+        if (taskId != null) {
+            batchTaskScheduler.cancel(taskId)
+            viewModelScope.launch {
+                batchTaskRepository.markCancelled(taskId)
+            }
+        }
         saveJob?.cancel()
         saveJob = null
         _uiState.update {

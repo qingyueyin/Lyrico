@@ -4,8 +4,8 @@ import androidx.room.Room
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.lonx.lyrico.data.LyricoDatabase
 import com.lonx.lyrico.data.SharedSelectionManager
-import com.lonx.lyrico.data.repository.BatchMatchHistoryRepository
-import com.lonx.lyrico.data.repository.BatchMatchHistoryRepositoryImpl
+import com.lonx.lyrico.data.repository.BatchTaskRepository
+import com.lonx.lyrico.data.repository.BatchTaskRepositoryImpl
 import com.lonx.lyrico.data.repository.GhContributorRepository
 import com.lonx.lyrico.data.repository.GhContributorRepositoryImpl
 import com.lonx.lyrico.data.repository.PlaybackRepository
@@ -20,10 +20,18 @@ import com.lonx.lyrico.utils.MediaScanner
 import com.lonx.lyrico.utils.ReplayGainScanner
 import com.lonx.lyrico.utils.UpdateManager
 import com.lonx.lyrico.utils.UpdateManagerImpl
+import com.lonx.lyrico.worker.BatchTaskScheduler
+import com.lonx.lyrico.data.model.BatchTaskType
+import com.lonx.lyrico.worker.processor.BatchTaskProcessorFactory
+import com.lonx.lyrico.worker.processor.EditTagsProcessor
+import com.lonx.lyrico.worker.processor.LyricsFormatProcessor
+import com.lonx.lyrico.worker.processor.MatchMetadataProcessor
+import com.lonx.lyrico.worker.processor.ReplayGainProcessor
 import com.lonx.lyrico.viewmodel.AboutViewModel
 import com.lonx.lyrico.viewmodel.BatchEditViewModel
 import com.lonx.lyrico.viewmodel.BatchLyricsFormatViewModel
-import com.lonx.lyrico.viewmodel.BatchMatchHistoryViewModel
+import com.lonx.lyrico.viewmodel.BatchTaskDetailViewModel
+import com.lonx.lyrico.viewmodel.BatchTaskListViewModel
 import com.lonx.lyrico.viewmodel.BatchMatchViewModel
 import com.lonx.lyrico.viewmodel.BatchRenameViewModel
 import com.lonx.lyrico.viewmodel.BatchReplayGainViewModel
@@ -34,6 +42,7 @@ import com.lonx.lyrico.viewmodel.FolderSongsViewModel
 import com.lonx.lyrico.viewmodel.SearchViewModel
 import com.lonx.lyrico.viewmodel.SettingsViewModel
 import com.lonx.lyrico.viewmodel.SongListViewModel
+import com.lonx.lyrico.worker.processor.RenameFilesProcessor
 import com.lonx.lyrics.model.SearchSource
 import com.lonx.lyrics.source.kg.KgApi
 import com.lonx.lyrics.source.kg.KgSource
@@ -192,13 +201,26 @@ val appModule = module {
             "lyrico_database"
         ).build()
     }
-    single { get<LyricoDatabase>().batchMatchHistoryDao() }
+    single { get<LyricoDatabase>().batchTaskDao() }
     single<SettingsRepository> { SettingsRepositoryImpl(androidContext()) }
     single<UpdateRepository> { UpdateRepositoryImpl(get(), get()) }
     single<PlaybackRepository> { PlaybackRepositoryImpl() }
     single<SongRepository> { SongRepositoryImpl(get(), androidContext(), get(), get(), get()) }
-    single<BatchMatchHistoryRepository> { BatchMatchHistoryRepositoryImpl(get()) }
+    single<BatchTaskRepository> { BatchTaskRepositoryImpl(get()) }
     single<GhContributorRepository> { GhContributorRepositoryImpl(get(), get()) }
+    single { BatchTaskScheduler(androidContext(), get()) }
+    single { LyricsFormatProcessor(get()) }
+    single { ReplayGainProcessor(get(), get()) }
+    single { MatchMetadataProcessor(get(), get(), get()) }
+    single { RenameFilesProcessor(get()) }
+    single { EditTagsProcessor(get()) }
+    single { BatchTaskProcessorFactory(mapOf(
+        BatchTaskType.CONVERT_LYRICS_FORMAT to get<LyricsFormatProcessor>(),
+        BatchTaskType.SCAN_REPLAY_GAIN to get<ReplayGainProcessor>(),
+        BatchTaskType.MATCH_METADATA to get<MatchMetadataProcessor>(),
+        BatchTaskType.RENAME_FILES to get<RenameFilesProcessor>(),
+        BatchTaskType.EDIT_TAGS to get<EditTagsProcessor>()
+    )) }
     // ViewModels
     viewModel { AboutViewModel(get(),get(), get()) }
     viewModel { SongListViewModel(get(), get(), get(), get(),get(),get()) }
@@ -206,9 +228,8 @@ val appModule = module {
     viewModel { SearchViewModel(get(), get()) }
     viewModel { CoverSearchViewModel(get(), get()) }
     viewModel { EditMetadataViewModel(get(), get(), get(),get()) }
-    viewModel { BatchMatchViewModel(get(), get(), get(), get(), get()) }
+    viewModel { BatchMatchViewModel(get(), get(), get(), get()) }
 
-    viewModel { BatchMatchHistoryViewModel(get()) }
     viewModel { FolderManagerViewModel(get()) }
     viewModel { (folderId: Long) ->
         FolderSongsViewModel(
@@ -216,9 +237,11 @@ val appModule = module {
             database = get()
         )
     }
-    viewModel { BatchRenameViewModel(get(), get(), get()) }
-    viewModel { BatchEditViewModel(get(), get(), get())}
-    viewModel { BatchReplayGainViewModel(get(), get()) }
-    viewModel { BatchLyricsFormatViewModel(get()) }
+    viewModel { BatchRenameViewModel(get(), get(), get(), get(), get()) }
+    viewModel { BatchEditViewModel(get(), get(), get(), get(), get())}
+    viewModel { BatchReplayGainViewModel(get(), get(), get()) }
+    viewModel { BatchLyricsFormatViewModel(get(), get(), get()) }
+    viewModel { (taskId: String) -> BatchTaskDetailViewModel(taskId, get(), get()) }
+    viewModel { BatchTaskListViewModel(get(), get()) }
 }
 

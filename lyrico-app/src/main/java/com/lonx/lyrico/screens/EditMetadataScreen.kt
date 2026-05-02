@@ -2,13 +2,9 @@ package com.lonx.lyrico.screens
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.ClipData
-import android.content.ClipDescription
-import android.content.ClipboardManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
@@ -62,8 +58,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.ClipEntry
-import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -80,13 +74,12 @@ import com.lonx.lyrico.R
 import com.lonx.lyrico.data.model.ConversionMode
 import com.lonx.lyrico.data.model.LyricFormat
 import com.lonx.lyrico.data.model.LyricsSearchResult
-import com.lonx.lyrico.data.repository.SettingsRepository
-import com.lonx.lyrico.utils.LyricDecoder
 import com.lonx.lyrico.ui.components.ImageCropper
 import com.lonx.lyrico.ui.components.getBitmap
 import com.lonx.lyrico.ui.components.rememberImageCropperState
 import com.lonx.lyrico.ui.components.rememberTintedPainter
 import com.lonx.lyrico.ui.theme.LyricoColors
+import com.lonx.lyrico.utils.LyricDecoder
 import com.lonx.lyrico.viewmodel.EditMetadataViewModel
 import com.lonx.lyrico.viewmodel.isEqualIgnoringBlank
 import com.ramcosta.composedestinations.annotation.Destination
@@ -100,7 +93,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults

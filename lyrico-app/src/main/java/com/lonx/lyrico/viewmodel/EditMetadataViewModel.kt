@@ -243,7 +243,7 @@ class EditMetadataViewModel(
                     replayGainAlbumPeak = albumPeak ?: current.replayGainAlbumPeak,
                     replayGainReferenceLoudness = refLoudness ?: current.replayGainReferenceLoudness,
                 ),
-                coverUri = result.picUrl?.takeIf { it.isNotBlank() }?.toUri()
+                coverUri = result.picUrl?.takeIf { it.isNotBlank() }
             )
         }
     }

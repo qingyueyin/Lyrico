@@ -15,6 +15,7 @@ data class BatchMatchConfig(
 ) : Parcelable {
 }
 
+@Serializable
 enum class BatchMatchMode(
     @field:StringRes val labelRes: Int
 ) {
@@ -22,6 +23,7 @@ enum class BatchMatchMode(
     OVERWRITE(R.string.batch_match_mode_overwrite)   // 覆盖
 }
 
+@Serializable
 enum class BatchMatchField(
     @field:StringRes val labelRes: Int,
     @field:StringRes val summaryRes: Int = 0

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -44,7 +45,6 @@ import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.DropdownImpl
-import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
@@ -227,18 +227,16 @@ fun BatchRenameScreen(
                     }
                 }
             } else {
-                item {
+                itemsIndexed(
+                    items = uiState.previews,
+                    key = { _, preview -> "${preview.originalPath}\n${preview.newPath}" }
+                ) { _, preview ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .padding(horizontal = 12.dp, vertical = 3.dp)
                     ) {
-                        uiState.previews.forEachIndexed { index, preview ->
-                            PreviewItem(preview = preview)
-                            if (index < uiState.previews.size - 1) {
-                                HorizontalDivider()
-                            }
-                        }
+                        PreviewItem(preview = preview)
                     }
                 }
             }
@@ -325,6 +323,13 @@ fun BatchRenameScreen(
                         text = stringResource(
                             R.string.batch_matching_success,
                             uiState.successCount
+                        ),
+                        style = MiuixTheme.textStyles.main
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.batch_replay_gain_skipped,
+                            uiState.skippedCount
                         ),
                         style = MiuixTheme.textStyles.main
                     )

@@ -2,7 +2,9 @@ package com.lonx.lyrico.data.model
 
 import androidx.annotation.StringRes
 import com.lonx.lyrico.R
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class LyricFormat(
     @field:StringRes val labelRes: Int
 ) {

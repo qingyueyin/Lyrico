@@ -81,10 +81,6 @@
     <string name="replay_gain_error_codec_exception">解码器异常: %1$s</string>
     <string name="replay_gain_error_general">扫描失败: %1$s</string>
 
-    <!-- 其他 -->
-    <string name="batch_match_history">批量匹配记录</string>
-    <string name="batch_match_history_hint">查看批量匹配历史日志</string>
-    <string name="about">关于</string>
 
     <string name="cache_category_image">图片缓存</string>
     <string name="cache_category_network">网络缓存</string>
@@ -146,19 +142,13 @@
     <string name="cd_back">返回</string>
     <string name="monet">莫奈取色</string>
     <string name="key_color">种子色</string>
-    <!-- 页面 -->
-    <string name="batch_match_history_title">批量匹配记录</string>
-    <string name="batch_match_history_empty">暂无记录</string>
+
 
     <!-- 删除确认 -->
     <string name="batch_match_delete_title">是否确认删除？</string>
     <string name="batch_match_delete_message">删除记录不可恢复</string>
 
     <!-- 统计文本 -->
-    <string name="batch_match_stat_success">成功</string>
-    <string name="batch_match_stat_failure">失败</string>
-    <string name="batch_match_stat_skipped">跳过</string>
-    <string name="batch_match_stat_duration">耗时</string>
     <string name="batch_match_stat_format">
     成功: %1$d | 失败: %2$d | 跳过: %3$d
     </string>
@@ -214,9 +204,6 @@
     <string name="batch_matching_total_time">用时 %.2f 秒</string>
     <string name="action_abort">中止</string>
     <string name="action_close">关闭</string>
-    <string name="action_view_results">查看结果</string>
-    <string name="no_record">无记录</string>
-    <string name="batch_match_history_detail">记录详情</string>
 
     <!-- 歌曲详情 -->
     <string name="label_title">标题</string>
@@ -373,8 +360,6 @@
     <string name="rename_success_title">重命名成功</string>
     <string name="rename_finished_title">重命名结束</string>
 
-    <string name="rename_result_summary">成功: %1$d / 总数: %2$d</string>
-    <string name="rename_result_failure">失败: %1$d</string>
 
     <!-- 字符映射 -->
     <string name="configure_character_mapping">配置字符映射</string>
@@ -494,4 +479,37 @@
     <string name="action_batch_convert_lyrics_format">批量转换歌词格式</string>
     <string name="current_target_format">目标格式: %s</string>
     <string name="current_selected">当前选择</string>
+
+    <!-- Batch Task Types -->
+    <string name="batch_task_match_tags">标签匹配</string>
+    <string name="batch_task_edit_tags">标签编辑</string>
+    <string name="batch_task_rename_files">文件重命名</string>
+    <string name="batch_task_convert_lyrics_format">歌词格式转换</string>
+    <string name="batch_task_scan_replay_gain">回放增益计算</string>
+
+    <!-- Batch Task Status -->
+    <string name="batch_task_status_queued">排队中</string>
+    <string name="batch_task_status_running">运行中</string>
+    <string name="batch_task_status_succeeded">成功</string>
+    <string name="batch_task_status_failed">失败</string>
+    <string name="batch_task_status_skipped">跳过</string>
+    <string name="batch_task_status_cancelled">已取消</string>
+
+    <!-- Batch Task List Screen -->
+    <string name="batch_task_list_title">任务历史</string>
+    <string name="batch_task_filter_all">全部</string>
+    <string name="batch_task_filter_type">任务类型</string>
+    <string name="batch_task_filter_status">状态</string>
+    <string name="batch_task_no_tasks">未找到任务</string>
+    <string name="no_song_selected">未选择歌曲</string>
+    <string name="batch_task_delete_title">删除任务</string>
+    <string name="batch_task_delete_message">确定要删除此任务记录吗？</string>
+    <string name="batch_task_clear_title">清空历史</string>
+    <string name="batch_task_clear_message">确定要清空所有已结束的任务记录吗？运行中的任务会保留。</string>
+    <string name="batch_task_type_label">任务类型：</string>
+    <string name="batch_task_status_label">运行状态：</string>
+    <string name="batch_task_detail_title">任务详情</string>
+    <string name="batch_task_detail_progress">进度：%1$d / %2$d</string>
+    <string name="batch_task_detail_no_records">无记录</string>
+
 </resources>

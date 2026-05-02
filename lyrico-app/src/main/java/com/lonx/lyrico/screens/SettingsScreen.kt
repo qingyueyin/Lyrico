@@ -49,7 +49,7 @@ import com.lonx.lyrico.viewmodel.SettingsViewModel
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.AboutDestination
-import com.ramcosta.composedestinations.generated.destinations.BatchMatchHistoryDestination
+import com.ramcosta.composedestinations.generated.destinations.BatchTaskListDestination
 import com.ramcosta.composedestinations.generated.destinations.FolderManagerDestination
 import com.ramcosta.composedestinations.generated.destinations.SearchSourcePriorityDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -540,9 +540,8 @@ fun SettingsScreen(
                 SmallTitle(text = stringResource(R.string.section_other))
                 Card(modifier = Modifier.padding(horizontal = 12.dp)) {
                     ArrowPreference(
-                        title = stringResource(R.string.batch_match_history),
-                        summary = stringResource(R.string.batch_match_history_hint),
-                        onClick = { navigator.navigate(BatchMatchHistoryDestination()) }
+                        title = stringResource(R.string.batch_task_list_title),
+                        onClick = { navigator.navigate(BatchTaskListDestination()) }
                     )
                     val cacheSummary = stringResource(
                         R.string.cache_size_label,
@@ -576,7 +575,7 @@ fun SettingsScreen(
                         )
                     }
                     ArrowPreference(
-                        title = stringResource(R.string.about),
+                        title = stringResource(R.string.about_title),
                         onClick = { navigator.navigate(AboutDestination()) }
                     )
                 }

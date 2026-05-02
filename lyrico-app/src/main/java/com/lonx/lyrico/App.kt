@@ -9,6 +9,7 @@ import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.disk.directory
 import coil3.request.crossfade
+import com.lonx.lyrico.data.repository.BatchTaskRepository
 import com.lonx.lyrico.di.appModule
 import com.lonx.lyrico.utils.coil.AudioCoverFetcher
 import com.lonx.lyrico.utils.coil.AudioCoverKeyer
@@ -16,6 +17,9 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class App : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
@@ -26,6 +30,11 @@ class App : Application(), SingletonImageLoader.Factory {
             androidLogger(Level.ERROR)
             androidContext(this@App)
             modules(appModule)
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val repo = org.koin.core.context.GlobalContext.get().get<BatchTaskRepository>()
+            repo.markOrphanedTasksFailed()
         }
     }
 
