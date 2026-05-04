@@ -42,7 +42,13 @@ data class LyricsResult(
     val original: List<LyricsLine>,        // 原始逐字歌词
     val translated: List<LyricsLine>?,     // 翻译 (通常是逐行)
     val romanization: List<LyricsLine>?,    // 罗马音 (逐字)
-    val isWordByWord: Boolean = true
+    val isWordByWord: Boolean = true,
+    val rawPlainLrc: String = "",
+    val rawVerbatimLrc: String = "",
+    val rawEnhancedLrc: String = "",
+    val rawTtml: String = "",
+    val rawPlainText: String = "",
+    val rawMultiPersonEnhancedLrc: String = ""
 ) : Parcelable
 
 fun List<LyricsLine>.isWordByWord(): Boolean {

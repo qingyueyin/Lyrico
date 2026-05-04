@@ -133,6 +133,10 @@ object LyricEncoder {
         config: LyricRenderConfig,
         conversionMode: ConversionMode = ConversionMode.NONE
     ): String {
+        result.rawPlainText.takeIf { it.isNotBlank() }?.let {
+            return convertLyricsText(it, conversionMode).trim()
+        }
+
         val convertedResult = convertLyricsResult(result, conversionMode)
         val builder = StringBuilder()
     
@@ -197,6 +201,11 @@ object LyricEncoder {
         config: LyricRenderConfig,
         offset: Long = 0L,
     ): String {
+        selectRawLyrics(result, config)?.let { raw ->
+            val converted = convertLyricsText(raw, config.conversionMode)
+            return shiftLyricsOffset(converted, offset).trim()
+        }
+
         val convertedResult = convertLyricsResult(result, config.conversionMode)
         
         val builder = StringBuilder()
@@ -275,6 +284,20 @@ object LyricEncoder {
         }
 
         return builder.toString().trim()
+    }
+
+    private fun selectRawLyrics(
+        result: LyricsResult,
+        config: LyricRenderConfig
+    ): String? {
+        val raw = when (config.format) {
+            PLAIN_LRC -> result.rawPlainLrc
+            VERBATIM_LRC -> result.rawVerbatimLrc
+            ENHANCED_LRC -> result.rawEnhancedLrc
+            TTML -> result.rawTtml
+        }
+
+        return raw.takeIf { it.isNotBlank() }
     }
 
 

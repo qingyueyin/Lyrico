@@ -4,4 +4,5 @@
     <string name="kg_source_name">酷狗音乐</string>
     <string name="qm_source_name">QQ音乐</string>
     <string name="soda_source_name">汽水音乐</string>
+    <string name="am_source_name">Apple Music</string>
 </resources>

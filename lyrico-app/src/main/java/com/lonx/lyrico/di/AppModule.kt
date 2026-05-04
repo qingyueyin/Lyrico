@@ -2,6 +2,7 @@ package com.lonx.lyrico.di
 
 import androidx.room.Room
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import com.lonx.lyrico.BuildConfig
 import com.lonx.lyrico.data.LyricoDatabase
 import com.lonx.lyrico.data.SharedSelectionManager
 import com.lonx.lyrico.data.repository.BatchTaskRepository
@@ -44,6 +45,8 @@ import com.lonx.lyrico.viewmodel.SettingsViewModel
 import com.lonx.lyrico.viewmodel.SongListViewModel
 import com.lonx.lyrico.worker.processor.RenameFilesProcessor
 import com.lonx.lyrics.model.SearchSource
+import com.lonx.lyrics.source.am.AppleApi
+import com.lonx.lyrics.source.am.AppleSource
 import com.lonx.lyrics.source.kg.KgApi
 import com.lonx.lyrics.source.kg.KgSource
 import com.lonx.lyrics.source.ne.NeApi
@@ -168,6 +171,14 @@ val appModule = module {
     }
 
     // 全局共享一个已选歌曲列表
+    single<AppleApi> {
+        Retrofit.Builder()
+            .baseUrl("https://music.apple.com/")
+            .client(get())
+            .build()
+            .create(AppleApi::class.java)
+    }
+
     single { SharedSelectionManager() }
     // 歌词源
     single<SearchSource>(named("Qm")) { QmSource(
@@ -183,6 +194,11 @@ val appModule = module {
     ) }
     single<SearchSource>(named("Soda")) { SodaSource(
         api = get()
+    ) }
+    single<SearchSource>(named("Apple")) { AppleSource(
+        api = get(),
+        json = get(),
+        appUserAgent = "Lyrico/${BuildConfig.VERSION_NAME}"
     ) }
 
     single { getAll<SearchSource>() }

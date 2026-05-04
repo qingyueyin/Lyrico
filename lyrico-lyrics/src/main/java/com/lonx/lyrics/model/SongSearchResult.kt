@@ -14,7 +14,8 @@ enum class Source(
     KG("kg", R.string.kg_source_name),
     QM("qm", R.string.qm_source_name),
     NE("ne", R.string.ne_source_name),
-    SODA("soda",R.string.soda_source_name);
+    SODA("soda", R.string.soda_source_name),
+    AM("am", R.string.am_source_name);
 
     companion object {
         val DEFAULT_ORDER = entries.toList()
