@@ -31,6 +31,7 @@ import com.lonx.lyrico.data.repository.PlaybackRepository
 import com.lonx.lyrico.data.repository.SettingsDefaults
 import com.lonx.lyrico.data.repository.SettingsRepository
 import com.lonx.lyrico.data.repository.SongRepository
+import com.lonx.lyrico.utils.CoverSourceType
 import com.lonx.lyrico.utils.ExtraMetadataResolver
 import com.lonx.lyrico.utils.LyricDecoder
 import com.lonx.lyrico.utils.LyricEncoder
@@ -38,9 +39,8 @@ import com.lonx.lyrico.utils.ReplayGainCalculateState
 import com.lonx.lyrico.utils.ReplayGainError
 import com.lonx.lyrico.utils.ReplayGainScanner
 import com.lonx.lyrico.utils.UiMessage
-import com.lonx.lyrics.model.LyricsResult
+import com.lonx.lyrico.utils.getCoverSourceType
 import com.lonx.lyrics.model.SongSearchResult
-import com.lonx.lyrics.model.isWordByWord
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -342,7 +342,7 @@ class EditMetadataViewModel(
      * 导出当前封面到本地相册
      */
     fun exportCover(context: Context) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val state = _uiState.value
                 val coverSource = state.coverUri ?: state.originalCover ?: state.picture?.data
@@ -368,24 +368,57 @@ class EditMetadataViewModel(
                 val destUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
 
                 if (destUri != null) {
-                    resolver.openOutputStream(destUri)?.use { outputStream ->
-                        when (coverSource) {
-                            is ByteArray -> {
-                                outputStream.write(coverSource)
+                    val wroteCover = resolver.openOutputStream(destUri)?.use { outputStream ->
+                        when (getCoverSourceType(coverSource)) {
+                            CoverSourceType.BYTE_ARRAY -> {
+                                outputStream.write(coverSource as ByteArray)
+                                true
                             }
-                            is Uri -> { // 如果是Uri，读取流然后拷贝
-                                resolver.openInputStream(coverSource)?.use { inputStream ->
+
+                            CoverSourceType.NETWORK_URL -> {
+                                java.net.URL(coverSource.toString().trim()).openStream().use { inputStream ->
                                     inputStream.copyTo(outputStream)
                                 }
+                                true
                             }
-                            is String -> { // 如果是String(Url/Uri string)
-                                resolver.openInputStream(coverSource.toUri())?.use { inputStream ->
+
+                            CoverSourceType.CONTENT_OR_FILE_URI,
+                            CoverSourceType.URI -> {
+                                val sourceUri = when (coverSource) {
+                                    is Uri -> coverSource
+                                    is String -> coverSource.trim().toUri()
+                                    else -> null
+                                }
+                                sourceUri?.let {
+                                    resolver.openInputStream(it)?.use { inputStream ->
+                                        inputStream.copyTo(outputStream)
+                                        true
+                                    }
+                                } ?: false
+                            }
+
+                            CoverSourceType.FILE_PATH -> {
+                                java.io.FileInputStream(coverSource.toString().trim()).use { inputStream ->
                                     inputStream.copyTo(outputStream)
                                 }
+                                true
                             }
+
+                            CoverSourceType.BITMAP,
+                            CoverSourceType.UNSUPPORTED -> false
                         }
+                    } ?: false
+
+                    if (wroteCover) {
+                        _uiState.update { it.copy(exportCoverResult = true) }
+                    } else {
+                        recordMetadataFailure(
+                            message = "Failed to export cover: source stream unavailable",
+                            relatedId = currentSongUri,
+                            detail = "Source: $coverSource"
+                        )
+                        _uiState.update { it.copy(exportCoverResult = false) }
                     }
-                    _uiState.update { it.copy(exportCoverResult = true) }
                 } else {
                     recordMetadataFailure(
                         message = "Failed to export cover: MediaStore insert returned null",

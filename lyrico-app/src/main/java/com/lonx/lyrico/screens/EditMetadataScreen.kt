@@ -82,7 +82,9 @@ import com.lonx.lyrico.ui.components.getBitmap
 import com.lonx.lyrico.ui.components.rememberImageCropperState
 import com.lonx.lyrico.ui.components.rememberTintedPainter
 import com.lonx.lyrico.ui.theme.LyricoColors
+import com.lonx.lyrico.utils.CoverSourceType
 import com.lonx.lyrico.utils.LyricDecoder
+import com.lonx.lyrico.utils.getCoverSourceType
 import com.lonx.lyrico.viewmodel.EditMetadataViewModel
 import com.lonx.lyrico.viewmodel.isEqualIgnoringBlank
 import com.ramcosta.composedestinations.annotation.Destination
@@ -1416,63 +1418,51 @@ private fun CoverSection(
         if (coverUri != null) {
             imageSize = withContext(Dispatchers.IO) {
                 try {
-                    when (coverUri) {
-                        is ByteArray -> {
-                            val options =
-                                BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                            BitmapFactory.decodeByteArray(coverUri, 0, coverUri.size, options)
-                            if (options.outWidth > 0 && options.outHeight > 0) {
-                                options.outWidth to options.outHeight
-                            } else null
+                    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+
+                    when (getCoverSourceType(coverUri)) {
+                        CoverSourceType.BYTE_ARRAY -> {
+                            val bytes = coverUri as ByteArray
+                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
                         }
 
-                        is Uri -> {
-                            context.contentResolver.openInputStream(coverUri)?.use { stream ->
-                                val options =
-                                    BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                        CoverSourceType.BITMAP -> {
+                            val bitmap = coverUri as Bitmap
+                            return@withContext bitmap.width to bitmap.height
+                        }
+
+                        CoverSourceType.NETWORK_URL -> {
+                            val source = coverUri.toString().trim()
+                            java.net.URL(source).openStream().use { stream ->
                                 BitmapFactory.decodeStream(stream, null, options)
-                                if (options.outWidth > 0 && options.outHeight > 0) {
-                                    options.outWidth to options.outHeight
-                                } else null
                             }
                         }
 
-                        is String -> {
-                            val options =
-                                BitmapFactory.Options().apply { inJustDecodeBounds = true }
-
-                            when {
-                                // 网络 URL
-                                coverUri.startsWith("http://") || coverUri.startsWith("https://") -> {
-                                    java.net.URL(coverUri).openStream().use { stream ->
-                                        BitmapFactory.decodeStream(stream, null, options)
-                                    }
-                                }
-
-                                // content:// 或 file:// 统一用 Uri 处理
-                                coverUri.startsWith("content://") || coverUri.startsWith("file://") -> {
-                                    val uri = coverUri.toUri()
-                                    context.contentResolver.openInputStream(uri)?.use { stream ->
-                                        BitmapFactory.decodeStream(stream, null, options)
-                                    }
-                                }
-
-                                // 普通文件路径
-                                else -> {
-                                    BitmapFactory.decodeFile(coverUri, options)
+                        CoverSourceType.CONTENT_OR_FILE_URI,
+                        CoverSourceType.URI -> {
+                            val uri = when (coverUri) {
+                                is Uri -> coverUri
+                                is String -> coverUri.trim().toUri()
+                                else -> null
+                            }
+                            uri?.let {
+                                context.contentResolver.openInputStream(it)?.use { stream ->
+                                    BitmapFactory.decodeStream(stream, null, options)
                                 }
                             }
-
-                            if (options.outWidth > 0 && options.outHeight > 0) {
-                                options.outWidth to options.outHeight
-                            } else null
                         }
 
-                        is Bitmap -> {
-                            coverUri.width to coverUri.height
+                        CoverSourceType.FILE_PATH -> {
+                            BitmapFactory.decodeFile(coverUri.toString().trim(), options)
                         }
 
-                        else -> null
+                        CoverSourceType.UNSUPPORTED -> null
+                    }
+
+                    if (options.outWidth > 0 && options.outHeight > 0) {
+                        options.outWidth to options.outHeight
+                    } else {
+                        null
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
