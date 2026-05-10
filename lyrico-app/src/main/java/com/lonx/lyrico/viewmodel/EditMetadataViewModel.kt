@@ -16,6 +16,9 @@ import androidx.lifecycle.viewModelScope
 import com.lonx.audiotag.model.AudioPicture
 import com.lonx.audiotag.model.AudioTagData
 import com.lonx.lyrico.R
+import com.lonx.lyrico.data.editfield.EditFieldScene
+import com.lonx.lyrico.data.editfield.EditFieldVisibilityRepository
+import com.lonx.lyrico.data.editfield.VisibleEditFieldGroup
 import com.lonx.lyrico.data.exception.RequiresUserPermissionException
 import com.lonx.lyrico.data.model.AppLogLevel
 import com.lonx.lyrico.data.model.AppLogType
@@ -49,6 +52,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -94,7 +98,8 @@ class EditMetadataViewModel(
     private val settingsRepository: SettingsRepository,
     private val playbackRepository: PlaybackRepository,
     private val replayGainScanner: ReplayGainScanner,
-    private val appLogRepository: AppLogRepository
+    private val appLogRepository: AppLogRepository,
+    private val editFieldVisibilityRepository: EditFieldVisibilityRepository,
 ) : ViewModel() {
 
     private val TAG = "EditMetadataVM"
@@ -121,6 +126,17 @@ class EditMetadataViewModel(
     val currentShiftOffset: StateFlow<Long> = _currentShiftOffset.asStateFlow()
     private val _uiState = MutableStateFlow(EditMetadataUiState())
     val uiState: StateFlow<EditMetadataUiState> = _uiState.asStateFlow()
+
+    val visibleFieldGroups: StateFlow<List<VisibleEditFieldGroup>> =
+        editFieldVisibilityRepository.configFlow
+            .map { config ->
+                config.visibleGroupsForScene(EditFieldScene.SingleEdit)
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyList(),
+            )
 
     fun readMetadata(uriString: String) {
         currentSongUri = uriString

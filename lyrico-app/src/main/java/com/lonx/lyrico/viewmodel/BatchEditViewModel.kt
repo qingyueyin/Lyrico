@@ -10,6 +10,9 @@ import com.lonx.audiotag.model.AudioTagData
 import com.lonx.audiotag.model.CustomTagField
 import com.lonx.lyrico.R
 import com.lonx.lyrico.data.SharedSelectionManager
+import com.lonx.lyrico.data.editfield.EditFieldScene
+import com.lonx.lyrico.data.editfield.EditFieldVisibilityRepository
+import com.lonx.lyrico.data.editfield.VisibleEditFieldGroup
 import com.lonx.lyrico.data.model.BatchTaskStatus
 import com.lonx.lyrico.data.model.BatchTaskType
 import com.lonx.lyrico.data.model.entity.SongEntity
@@ -25,8 +28,11 @@ import com.lonx.lyrico.worker.processor.EditTagsTaskConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -133,6 +139,7 @@ class BatchEditViewModel(
     private val selectionManager: SharedSelectionManager,
     private val batchTaskRepository: BatchTaskRepository,
     private val batchTaskScheduler: BatchTaskScheduler,
+    private val editFieldVisibilityRepository: EditFieldVisibilityRepository,
     private val application: Application
 ) : ViewModel() {
 
@@ -144,6 +151,17 @@ class BatchEditViewModel(
 
     private val _uiState = MutableStateFlow(BatchEditUiState())
     val uiState: StateFlow<BatchEditUiState> = _uiState.asStateFlow()
+
+    val visibleFieldGroups: StateFlow<List<VisibleEditFieldGroup>> =
+        editFieldVisibilityRepository.configFlow
+            .map { config ->
+                config.visibleGroupsForScene(EditFieldScene.BatchEdit)
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyList(),
+            )
 
     /** 保存选中的文件uri */
     private var selectedUris: List<String> = emptyList()

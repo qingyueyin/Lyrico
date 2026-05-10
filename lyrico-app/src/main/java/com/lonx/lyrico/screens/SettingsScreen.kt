@@ -52,6 +52,7 @@ import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.AboutDestination
 import com.ramcosta.composedestinations.generated.destinations.AppLogsDestination
 import com.ramcosta.composedestinations.generated.destinations.BatchTaskListDestination
+import com.ramcosta.composedestinations.generated.destinations.EditFieldVisibilityDestination
 import com.ramcosta.composedestinations.generated.destinations.ExtraMetadataWritesDestination
 import com.ramcosta.composedestinations.generated.destinations.FolderManagerDestination
 import com.ramcosta.composedestinations.generated.destinations.SearchSourcePriorityDestination
@@ -523,6 +524,10 @@ fun SettingsScreen(
                         title = stringResource(R.string.extra_metadata_writes_title),
                         summary = stringResource(R.string.extra_metadata_writes_entry_summary),
                         onClick = { navigator.navigate(ExtraMetadataWritesDestination()) }
+                    )
+                    ArrowPreference(
+                        title = stringResource(R.string.edit_field_visibility_settings),
+                        onClick = { navigator.navigate(EditFieldVisibilityDestination()) }
                     )
                 }
             }

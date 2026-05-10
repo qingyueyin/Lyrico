@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.lonx.lyrico.data.editfield.EditFieldVisibilityOverridesJson
 import com.lonx.lyrico.data.model.BatchMatchConfig
 import com.lonx.lyrico.data.model.BatchMatchConfigDefaults
 import com.lonx.lyrico.data.model.BatchMatchField
@@ -49,7 +50,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlin.collections.first
 
 
-private val Context.settingsDataStore by preferencesDataStore(name = "settings")
+internal val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
 object SettingsDefaults {
     const val MONET_ENABLE: Boolean = false
@@ -541,7 +542,13 @@ class SettingsRepositoryImpl(private val context: Context) : SettingsRepository 
             conversionMode = prefs[PreferencesKeys.CONVERSION_MODE]
                 ?: SettingsDefaults.CONVERSION_MODE.name,
             logRetentionOption = prefs[PreferencesKeys.LOG_RETENTION_OPTION]
-                ?: SettingsDefaults.LOG_RETENTION_OPTION.name
+                ?: SettingsDefaults.LOG_RETENTION_OPTION.name,
+            editFieldVisibilityOverrides = runCatching {
+                prefs[com.lonx.lyrico.data.editfield.EditFieldVisibilityRepository.EDIT_FIELD_VISIBILITY_OVERRIDES]
+                    ?.let { json ->
+                        jsonFormatter.decodeFromString<EditFieldVisibilityOverridesJson>(json).values
+                    }
+            }.getOrNull()
         )
 
         return jsonFormatter.encodeToString(backup)
@@ -606,6 +613,12 @@ class SettingsRepositoryImpl(private val context: Context) : SettingsRepository 
                     runCatching { LogRetentionOption.valueOf(optionName) }
                         .getOrNull()
                         ?.let { prefs[PreferencesKeys.LOG_RETENTION_OPTION] = it.name }
+                }
+                backup.editFieldVisibilityOverrides?.let { overrides ->
+                    prefs[com.lonx.lyrico.data.editfield.EditFieldVisibilityRepository.EDIT_FIELD_VISIBILITY_OVERRIDES] =
+                        jsonFormatter.encodeToString(
+                            EditFieldVisibilityOverridesJson(values = overrides)
+                        )
                 }
             }
             true

@@ -53,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.lonx.audiotag.model.CustomTagField
 import com.lonx.lyrico.R
+import com.lonx.lyrico.data.editfield.EditFieldRegistry
 import com.lonx.lyrico.ui.components.rememberTintedPainter
 import com.lonx.lyrico.ui.theme.LyricoColors
 import com.lonx.lyrico.utils.coil.CoverRequest
@@ -62,6 +63,7 @@ import com.lonx.lyrico.viewmodel.BatchEditSelectableValue
 import com.lonx.lyrico.viewmodel.BatchEditViewModel
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
+import com.ramcosta.composedestinations.generated.destinations.EditFieldVisibilityDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -89,6 +91,7 @@ import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Info
 import top.yukonga.miuix.kmp.icon.extended.Ok
+import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.icon.extended.Undo
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -106,6 +109,7 @@ fun BatchEditScreen(
 ) {
     val viewModel: BatchEditViewModel = koinViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val visibleFieldGroups by viewModel.visibleFieldGroups.collectAsStateWithLifecycle()
 
     var showCoverOptionsSheet by remember { mutableStateOf(false) }
     var showSelectedCoverSheet by remember { mutableStateOf(false) }
@@ -218,6 +222,16 @@ fun BatchEditScreen(
                 },
                 actions = {
                     IconButton(
+                        onClick = {
+                            navigator.navigate(EditFieldVisibilityDestination())
+                        }
+                    ) {
+                        Icon(
+                            imageVector = MiuixIcons.Settings,
+                            contentDescription = null
+                        )
+                    }
+                    IconButton(
                         onClick = { showInfoDialog = true }
                     ) {
                         Icon(
@@ -280,175 +294,231 @@ fun BatchEditScreen(
                 )
             }
 
+            val visibleFieldCodes = visibleFieldGroups
+                .flatMap { it.fields }
+                .map { it.code }
+                .toSet()
+
+            val visibleGroupCodes = visibleFieldGroups
+                .map { it.group.code }
+                .toSet()
+
             // 封面编辑区
-            item(key = "cover_editor") {
-                BatchEditCoverSection(
-                    coverUri = uiState.coverUri,
-                    isRemoved = uiState.removeCover,
-                    onCoverClick = { showCoverOptionsSheet = true }
-                )
-            }
-            // 评分组
-            item(key = "rating") {
-                Column {
-                    SmallTitle(text = stringResource(R.string.label_rating))
-                    Card(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
-                        BatchEditRatingItem(
-                            rating = uiState.rating,
-                            isModified = uiState.ratingModified,
-                            onRatingChange = { viewModel.updateRating(it) },
-                            onRevert = { viewModel.resetRating() }
-                        )
+            if (visibleGroupCodes.contains(EditFieldRegistry.GROUP_COVER)) {
+                item(key = "cover_editor") {
+                    Column {
+                        SmallTitle(text = stringResource(R.string.edit_field_group_cover))
+                        Card(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                            Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                                BatchEditCoverSection(
+                                    coverUri = uiState.coverUri,
+                                    isRemoved = uiState.removeCover,
+                                    onCoverClick = { showCoverOptionsSheet = true }
+                                )
+                                if (visibleFieldCodes.contains("cover.rating")) {
+                                    BatchEditRatingItem(
+                                        rating = uiState.rating,
+                                        isModified = uiState.ratingModified,
+                                        onRatingChange = { viewModel.updateRating(it) },
+                                        onRevert = { viewModel.resetRating() }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
             // 基础信息组
-            item(key = "basic_info") {
-                Column {
-                    SmallTitle(text = stringResource(R.string.group_basic_info))
-                    Card(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
-                        Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                            BatchEditFieldItem(
-                                field = BatchEditField.TITLE,
-                                value = uiState.title,
-                                onValueChange = { viewModel.updateTitle(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.TITLE) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.ARTIST,
-                                value = uiState.artist,
-                                onValueChange = { viewModel.updateArtist(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.ARTIST) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.ALBUM_ARTIST,
-                                value = uiState.albumArtist,
-                                onValueChange = { viewModel.updateAlbumArtist(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.ALBUM_ARTIST) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.ALBUM,
-                                value = uiState.album,
-                                onValueChange = { viewModel.updateAlbum(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.ALBUM) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.DATE,
-                                value = uiState.date,
-                                onValueChange = { viewModel.updateDate(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.DATE) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.LANGUAGE,
-                                value = uiState.language,
-                                onValueChange = { viewModel.updateLanguage(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.LANGUAGE) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.GENRE,
-                                value = uiState.genre,
-                                onValueChange = { viewModel.updateGenre(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.GENRE) }
-                            )
+            if (visibleGroupCodes.contains(EditFieldRegistry.GROUP_BASIC_INFO)) {
+                item(key = "basic_info") {
+                    Column {
+                        SmallTitle(text = stringResource(R.string.group_basic_info))
+                        Card(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                            Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                                if (visibleFieldCodes.contains("basic_info.title")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.TITLE,
+                                        value = uiState.title,
+                                        onValueChange = { viewModel.updateTitle(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.TITLE) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("basic_info.artist")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.ARTIST,
+                                        value = uiState.artist,
+                                        onValueChange = { viewModel.updateArtist(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.ARTIST) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("basic_info.album_artist")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.ALBUM_ARTIST,
+                                        value = uiState.albumArtist,
+                                        onValueChange = { viewModel.updateAlbumArtist(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.ALBUM_ARTIST) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("basic_info.album")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.ALBUM,
+                                        value = uiState.album,
+                                        onValueChange = { viewModel.updateAlbum(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.ALBUM) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("basic_info.date")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.DATE,
+                                        value = uiState.date,
+                                        onValueChange = { viewModel.updateDate(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.DATE) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("basic_info.language")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.LANGUAGE,
+                                        value = uiState.language,
+                                        onValueChange = { viewModel.updateLanguage(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.LANGUAGE) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("basic_info.genre")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.GENRE,
+                                        value = uiState.genre,
+                                        onValueChange = { viewModel.updateGenre(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.GENRE) }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
 
             // 曲目详情组
-            item(key = "track_details") {
-                Column {
-                    SmallTitle(text = stringResource(R.string.group_track_details))
-                    Card(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
-                        Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                            BatchEditFieldItem(
-                                field = BatchEditField.TRACK_NUMBER,
-                                value = uiState.trackNumber,
-                                onValueChange = { viewModel.updateTrackNumber(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.TRACK_NUMBER) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.DISC_NUMBER,
-                                value = uiState.discNumber,
-                                onValueChange = { viewModel.updateDiscNumber(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.DISC_NUMBER) }
-                            )
+            if (visibleGroupCodes.contains(EditFieldRegistry.GROUP_TRACK_DETAILS)) {
+                item(key = "track_details") {
+                    Column {
+                        SmallTitle(text = stringResource(R.string.group_track_details))
+                        Card(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                            Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                                if (visibleFieldCodes.contains("track_details.track_number")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.TRACK_NUMBER,
+                                        value = uiState.trackNumber,
+                                        onValueChange = { viewModel.updateTrackNumber(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.TRACK_NUMBER) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("track_details.disc_number")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.DISC_NUMBER,
+                                        value = uiState.discNumber,
+                                        onValueChange = { viewModel.updateDiscNumber(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.DISC_NUMBER) }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
 
             // 制作人员和其他信息组
-            item(key = "credits_other") {
-                Column {
-                    SmallTitle(text = stringResource(R.string.group_credits_other))
-                    Card(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
-                        Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                            BatchEditFieldItem(
-                                field = BatchEditField.COMPOSER,
-                                value = uiState.composer,
-                                onValueChange = { viewModel.updateComposer(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.COMPOSER) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.LYRICIST,
-                                value = uiState.lyricist,
-                                onValueChange = { viewModel.updateLyricist(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.LYRICIST) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.COPYRIGHT,
-                                value = uiState.copyright,
-                                onValueChange = { viewModel.updateCopyright(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.COPYRIGHT) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.COMMENT,
-                                value = uiState.comment,
-                                onValueChange = { viewModel.updateComment(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.COMMENT) }
-                            )
+            if (visibleGroupCodes.contains(EditFieldRegistry.GROUP_CREDITS_OTHER)) {
+                item(key = "credits_other") {
+                    Column {
+                        SmallTitle(text = stringResource(R.string.group_credits_other))
+                        Card(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                            Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                                if (visibleFieldCodes.contains("credits_other.composer")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.COMPOSER,
+                                        value = uiState.composer,
+                                        onValueChange = { viewModel.updateComposer(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.COMPOSER) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("credits_other.lyricist")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.LYRICIST,
+                                        value = uiState.lyricist,
+                                        onValueChange = { viewModel.updateLyricist(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.LYRICIST) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("credits_other.copyright")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.COPYRIGHT,
+                                        value = uiState.copyright,
+                                        onValueChange = { viewModel.updateCopyright(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.COPYRIGHT) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("credits_other.comment")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.COMMENT,
+                                        value = uiState.comment,
+                                        onValueChange = { viewModel.updateComment(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.COMMENT) }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
 
             // 回放增益组
-            item(key = "replay_gain") {
-                Column {
-                    SmallTitle(text = stringResource(R.string.group_replay_gain))
-                    Card(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
-                        Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                            BatchEditFieldItem(
-                                field = BatchEditField.REPLAY_GAIN_TRACK_GAIN,
-                                value = uiState.replayGainTrackGain,
-                                onValueChange = { viewModel.updateReplayGainTrackGain(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.REPLAY_GAIN_TRACK_GAIN) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.REPLAY_GAIN_TRACK_PEAK,
-                                value = uiState.replayGainTrackPeak,
-                                onValueChange = { viewModel.updateReplayGainTrackPeak(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.REPLAY_GAIN_TRACK_PEAK) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.REPLAY_GAIN_ALBUM_GAIN,
-                                value = uiState.replayGainAlbumGain,
-                                onValueChange = { viewModel.updateReplayGainAlbumGain(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.REPLAY_GAIN_ALBUM_GAIN) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.REPLAY_GAIN_ALBUM_PEAK,
-                                value = uiState.replayGainAlbumPeak,
-                                onValueChange = { viewModel.updateReplayGainAlbumPeak(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.REPLAY_GAIN_ALBUM_PEAK) }
-                            )
-                            BatchEditFieldItem(
-                                field = BatchEditField.REPLAY_GAIN_REFERENCE_LOUDNESS,
-                                value = uiState.replayGainReferenceLoudness,
-                                onValueChange = { viewModel.updateReplayGainReferenceLoudness(it) },
-                                onSelectFromSongs = { openSelectedValueSheet(BatchEditField.REPLAY_GAIN_REFERENCE_LOUDNESS) }
-                            )
+            if (visibleGroupCodes.contains(EditFieldRegistry.GROUP_REPLAY_GAIN)) {
+                item(key = "replay_gain") {
+                    Column {
+                        SmallTitle(text = stringResource(R.string.group_replay_gain))
+                        Card(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                            Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                                if (visibleFieldCodes.contains("replay_gain.track_gain")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.REPLAY_GAIN_TRACK_GAIN,
+                                        value = uiState.replayGainTrackGain,
+                                        onValueChange = { viewModel.updateReplayGainTrackGain(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.REPLAY_GAIN_TRACK_GAIN) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("replay_gain.track_peak")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.REPLAY_GAIN_TRACK_PEAK,
+                                        value = uiState.replayGainTrackPeak,
+                                        onValueChange = { viewModel.updateReplayGainTrackPeak(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.REPLAY_GAIN_TRACK_PEAK) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("replay_gain.album_gain")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.REPLAY_GAIN_ALBUM_GAIN,
+                                        value = uiState.replayGainAlbumGain,
+                                        onValueChange = { viewModel.updateReplayGainAlbumGain(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.REPLAY_GAIN_ALBUM_GAIN) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("replay_gain.album_peak")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.REPLAY_GAIN_ALBUM_PEAK,
+                                        value = uiState.replayGainAlbumPeak,
+                                        onValueChange = { viewModel.updateReplayGainAlbumPeak(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.REPLAY_GAIN_ALBUM_PEAK) }
+                                    )
+                                }
+                                if (visibleFieldCodes.contains("replay_gain.reference_loudness")) {
+                                    BatchEditFieldItem(
+                                        field = BatchEditField.REPLAY_GAIN_REFERENCE_LOUDNESS,
+                                        value = uiState.replayGainReferenceLoudness,
+                                        onValueChange = { viewModel.updateReplayGainReferenceLoudness(it) },
+                                        onSelectFromSongs = { openSelectedValueSheet(BatchEditField.REPLAY_GAIN_REFERENCE_LOUDNESS) }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -477,7 +547,8 @@ fun BatchEditScreen(
                 }
             }
             // 歌词组
-            item(key = "lyrics") {
+            if (visibleGroupCodes.contains(EditFieldRegistry.GROUP_LYRICS)) {
+                item(key = "lyrics") {
                 Column {
                     SmallTitle(text = stringResource(R.string.label_lyrics))
                     Card(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
@@ -506,6 +577,7 @@ fun BatchEditScreen(
                             )
                         }
                     }
+                }
                 }
             }
 
@@ -1046,59 +1118,51 @@ private fun BatchEditCoverSection(
     isRemoved: Boolean,
     onCoverClick: () -> Unit
 ) {
-    Column {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .clickable { onCoverClick() },
-                contentAlignment = Alignment.Center
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(160.dp)
+            .clickable { onCoverClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        if (isRemoved) {
+            Text(
+                text = stringResource(R.string.batch_edit_cover_remove),
+                color = MiuixTheme.colorScheme.error,
+                fontWeight = FontWeight.Medium
+            )
+        } else if (coverUri != null) {
+            AsyncImage(
+                model = coverUri,
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(),
+                placeholder = rememberTintedPainter(
+                    painter = painterResource(id = R.drawable.ic_album_24dp),
+                    tint = LyricoColors.coverPlaceholderIcon
+                ),
+                error = rememberTintedPainter(
+                    painter = painterResource(id = R.drawable.ic_album_24dp),
+                    tint = LyricoColors.coverPlaceholderIcon
+                )
+            )
+        } else {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                if (isRemoved) {
-                    Text(
-                        text = stringResource(R.string.batch_edit_cover_remove),
-                        color = MiuixTheme.colorScheme.error,
-                        fontWeight = FontWeight.Medium
-                    )
-                } else if (coverUri != null) {
-                    AsyncImage(
-                        model = coverUri,
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize(),
-                        placeholder = rememberTintedPainter(
-                            painter = painterResource(id = R.drawable.ic_album_24dp),
-                            tint = LyricoColors.coverPlaceholderIcon
-                        ),
-                        error = rememberTintedPainter(
-                            painter = painterResource(id = R.drawable.ic_album_24dp),
-                            tint = LyricoColors.coverPlaceholderIcon
-                        )
-                    )
-                } else {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_album_24dp),
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MiuixTheme.colorScheme.onSurfaceVariantActions
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.batch_edit_cover_hint),
-                            color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                            fontSize = 13.sp
-                        )
-                    }
-                }
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_album_24dp),
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantActions
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.batch_edit_cover_hint),
+                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                    fontSize = 13.sp
+                )
             }
         }
     }

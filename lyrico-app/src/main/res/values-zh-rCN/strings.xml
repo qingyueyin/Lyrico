@@ -576,4 +576,17 @@
     <string name="log_retention_30_days">30 天</string>
     <string name="log_retention_90_days">90 天</string>
     <string name="log_retention_forever">永久保留</string>
+
+    <string name="edit_field_visibility_settings">编辑字段显示</string>
+    <string name="edit_field_group_lyrics">歌词</string>
+    <string name="edit_field_group_cover">封面</string>
+    <string name="reset_to_default">恢复默认</string>
+    <string name="no_visible_edit_fields">当前没有可显示的编辑字段</string>
+    <string name="no_visible_edit_fields_hint">请在字段显示设置中启用至少一个字段</string>
+    <string name="open_edit_field_visibility_settings">字段显示设置</string>
+    <string name="section_edit">编辑</string>
+    <string name="edit_field_visibility_group_enabled">显示该分组</string>
+    <string name="edit_field_visibility_group_enabled_summary">关闭后，该分组下的字段不会出现在编辑页面中</string>
+    <string name="edit_field_visibility_fields">字段</string>
+    <string name="edit_field_visibility_group_summary">已启用 %1$d / %2$d 个字段</string>
 </resources>

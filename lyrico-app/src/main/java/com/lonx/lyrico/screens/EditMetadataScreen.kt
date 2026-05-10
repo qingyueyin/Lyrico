@@ -74,6 +74,8 @@ import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import com.lonx.audiotag.model.CustomTagField
 import com.lonx.lyrico.R
+import com.lonx.lyrico.data.editfield.EditFieldRegistry
+import com.lonx.lyrico.data.editfield.VisibleEditFieldGroup
 import com.lonx.lyrico.data.model.ConversionMode
 import com.lonx.lyrico.data.model.LyricFormat
 import com.lonx.lyrico.data.model.LyricsSearchResult
@@ -91,6 +93,7 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.SearchCoverDestination
 import com.ramcosta.composedestinations.generated.destinations.SearchResultsDestination
+import com.ramcosta.composedestinations.generated.destinations.EditFieldVisibilityDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.ResultRecipient
 import com.ramcosta.composedestinations.result.onResult
@@ -125,6 +128,7 @@ import top.yukonga.miuix.kmp.icon.extended.Notes
 import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.icon.extended.Play
 import top.yukonga.miuix.kmp.icon.extended.Search
+import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.icon.extended.Undo
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
@@ -150,6 +154,7 @@ fun EditMetadataScreen(
 ) {
     val viewModel: EditMetadataViewModel = koinViewModel()
     val uiState by viewModel.uiState.collectAsState()
+    val visibleFieldGroups by viewModel.visibleFieldGroups.collectAsState()
     val limitLyricsInputLines by viewModel.limitLyricsInputLines.collectAsState()
     val replayGainCalculateProgress = uiState.replayGainCalculateProgress
     val originalTagData = uiState.originalTagData
@@ -300,7 +305,15 @@ fun EditMetadataScreen(
                     ) { Icon(imageVector = MiuixIcons.Back, contentDescription = null) }
                 },
                 actions = {
-                    // 搜索按钮
+                    IconButton(onClick = {
+                        navigator.navigate(EditFieldVisibilityDestination())
+                    }) {
+                        Icon(
+                            imageVector = MiuixIcons.Settings,
+                            contentDescription = null
+                        )
+                    }
+
                     IconButton(onClick = {
                         val keyword = if (!editingTagData?.title.isNullOrEmpty()) {
                             if (editingTagData.artist.isNullOrEmpty()) editingTagData.title!!
@@ -391,379 +404,431 @@ fun EditMetadataScreen(
                 .imePadding()
                 .scrollEndHaptic(),
         ) {
-            // 封面编辑区
-            item(key = "cover") {
-                CoverSection(
-                    coverUri = uiState.coverUri,
-                    title = editingTagData?.title
-                        ?: uiState.songInfo?.tagData?.fileName?.substringBeforeLast(".") ?: "",
-                    artist = editingTagData?.artist ?: "",
-                    rating = editingTagData?.rating ?: 0,
-                    isModified = uiState.coverUri != uiState.originalCover,
-                    onCoverClick = { showCoverOptionsSheet = true },
-                    onRevertCoverClick = { viewModel.revertCover() },
-                    onRatingChange = { newRating ->
-                        viewModel.updateTag { copy(rating = newRating) }
-                    }
-                )
-            }
+            val visibleFieldCodes = visibleFieldGroups
+                .flatMap { it.fields }
+                .map { it.code }
+                .toSet()
 
-            // 基础信息组
-            item(key = "basic_info") {
-                Column {
-                    SmallTitle(text = stringResource(R.string.group_basic_info))
-                    MetadataInputField(
-                        label = stringResource(R.string.label_title),
-                        value = editingTagData?.title ?: "",
-                        onValueChange = { viewModel.updateTag { copy(title = it) } },
-                        isModified = !editingTagData?.title.isEqualIgnoringBlank(
-                            originalTagData?.title
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    title = originalTagData?.title ?: ""
-                                )
-                            }
-                        }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_artists),
-                        value = editingTagData?.artist ?: "",
-                        onValueChange = { viewModel.updateTag { copy(artist = it) } },
-                        isModified = !editingTagData?.artist.isEqualIgnoringBlank(
-                            originalTagData?.artist
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    artist = originalTagData?.artist ?: ""
-                                )
-                            }
-                        }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_album_artist),
-                        value = editingTagData?.albumArtist ?: "",
-                        onValueChange = { viewModel.updateTag { copy(albumArtist = it) } },
-                        isModified = !editingTagData?.albumArtist.isEqualIgnoringBlank(
-                            originalTagData?.albumArtist
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    albumArtist = originalTagData?.albumArtist ?: ""
-                                )
-                            }
-                        }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_album),
-                        value = editingTagData?.album ?: "",
-                        onValueChange = { viewModel.updateTag { copy(album = it) } },
-                        isModified = !editingTagData?.album.isEqualIgnoringBlank(
-                            originalTagData?.album
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    album = originalTagData?.album ?: ""
-                                )
-                            }
-                        }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_date),
-                        value = editingTagData?.date ?: "",
-                        onValueChange = { viewModel.updateTag { copy(date = it) } },
-                        isModified = !editingTagData?.date.isEqualIgnoringBlank(
-                            originalTagData?.date
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    date = originalTagData?.date ?: ""
-                                )
-                            }
-                        }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_language),
-                        value = editingTagData?.language ?: "",
-                        onValueChange = { viewModel.updateTag { copy(language = it) } },
-                        isModified = !editingTagData?.language.isEqualIgnoringBlank(
-                            originalTagData?.language
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    language = originalTagData?.language ?: ""
-                                )
-                            }
-                        }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_genre),
-                        value = editingTagData?.genre ?: "",
-                        onValueChange = { viewModel.updateTag { copy(genre = it) } },
-                        isModified = !editingTagData?.genre.isEqualIgnoringBlank(
-                            originalTagData?.genre
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    genre = originalTagData?.genre ?: ""
-                                )
-                            }
+            val visibleGroupCodes = visibleFieldGroups
+                .map { it.group.code }
+                .toSet()
+
+            if (visibleGroupCodes.contains(EditFieldRegistry.GROUP_COVER)) {
+                item(key = "cover") {
+                    CoverSection(
+                        coverUri = uiState.coverUri,
+                        title = editingTagData?.title
+                            ?: uiState.songInfo?.tagData?.fileName?.substringBeforeLast(".") ?: "",
+                        artist = editingTagData?.artist ?: "",
+                        rating = editingTagData?.rating ?: 0,
+                        showRating = visibleFieldCodes.contains("cover.rating"),
+                        isModified = uiState.coverUri != uiState.originalCover,
+                        onCoverClick = { showCoverOptionsSheet = true },
+                        onRevertCoverClick = { viewModel.revertCover() },
+                        onRatingChange = { newRating ->
+                            viewModel.updateTag { copy(rating = newRating) }
                         }
                     )
                 }
             }
 
-            item(key = "track_details") {
-                Column {
-                    SmallTitle(text = stringResource(R.string.group_track_details))
-                    MetadataInputField(
-                        label = stringResource(R.string.label_track_number),
-                        value = editingTagData?.trackNumber ?: "",
-                        onValueChange = { viewModel.updateTag { copy(trackNumber = it) } },
-                        isModified = !editingTagData?.trackNumber.isEqualIgnoringBlank(
-                            originalTagData?.trackNumber
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    trackNumber = originalTagData?.trackNumber ?: ""
-                                )
-                            }
-                        }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_disc_number),
-                        value = editingTagData?.discNumber?.toString() ?: "",
-                        onValueChange = { viewModel.updateTag { copy(discNumber = it.toIntOrNull()) } },
-                        isModified = editingTagData?.discNumber != originalTagData?.discNumber,
-                        onRevert = { viewModel.updateTag { copy(discNumber = originalTagData?.discNumber) } }
-                    )
-                }
-            }
-
-            item(key = "credits_other") {
-                Column {
-                    SmallTitle(text = stringResource(R.string.group_credits_other))
-                    MetadataInputField(
-                        label = stringResource(R.string.label_composer),
-                        value = editingTagData?.composer ?: "",
-                        onValueChange = { viewModel.updateTag { copy(composer = it) } },
-                        isModified = !editingTagData?.composer.isEqualIgnoringBlank(
-                            originalTagData?.composer
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    composer = originalTagData?.composer ?: ""
-                                )
-                            }
-                        }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_lyricist),
-                        value = editingTagData?.lyricist ?: "",
-                        onValueChange = { viewModel.updateTag { copy(lyricist = it) } },
-                        isModified = !editingTagData?.lyricist.isEqualIgnoringBlank(
-                            originalTagData?.lyricist
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    lyricist = originalTagData?.lyricist ?: ""
-                                )
-                            }
-                        }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_copyright),
-                        value = editingTagData?.copyright ?: "",
-                        onValueChange = { viewModel.updateTag { copy(copyright = it) } },
-                        isModified = !editingTagData?.copyright.isEqualIgnoringBlank(
-                            originalTagData?.copyright
-                        ),
-                        onRevert = { viewModel.updateTag { copy(copyright = originalTagData?.copyright) } }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_comment),
-                        value = editingTagData?.comment ?: "",
-                        onValueChange = { viewModel.updateTag { copy(comment = it) } },
-                        isModified = !editingTagData?.comment.isEqualIgnoringBlank(
-                            originalTagData?.comment
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    comment = originalTagData?.comment ?: ""
-                                )
-                            }
-                        }
-                    )
-                }
-            }
-
-            item(key = "replay_gain") {
-                Column {
-                    SmallTitle(text = stringResource(R.string.group_replay_gain))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 4.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            androidx.compose.animation.AnimatedVisibility(
-                                visible = uiState.isReplayGainCalculating,
-                                enter = fadeIn(),
-                                exit = fadeOut()
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    // 环形进度条
-                                    androidx.compose.material3.CircularProgressIndicator(
-                                        progress = { replayGainCalculateProgress ?: 0f },
-                                        modifier = Modifier.size(20.dp),
-                                        color = MiuixTheme.colorScheme.primary,
-                                        strokeWidth = 2.5.dp,
-                                        trackColor = MiuixTheme.colorScheme.primary.copy(
-                                            alpha = 0.2f
+            if (visibleGroupCodes.contains(EditFieldRegistry.GROUP_BASIC_INFO)) {
+                item(key = "basic_info") {
+                    Column {
+                        SmallTitle(text = stringResource(R.string.group_basic_info))
+                        if (visibleFieldCodes.contains("basic_info.title")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_title),
+                                value = editingTagData?.title ?: "",
+                                onValueChange = { viewModel.updateTag { copy(title = it) } },
+                                isModified = !editingTagData?.title.isEqualIgnoringBlank(
+                                    originalTagData?.title
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            title = originalTagData?.title ?: ""
                                         )
-                                    )
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    // 进度百分比文本
-                                    Text(
-                                        text = "${((replayGainCalculateProgress ?: 0f) * 100).toInt()}%",
-                                        fontSize = 12.sp,
-                                        color = MiuixTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(MiuixTheme.colorScheme.primary)
-                                .clickable {
-                                    if (!uiState.isReplayGainCalculating) {
-                                        viewModel.calculateReplayGain()
-                                    } else {
-                                        viewModel.cancelScan()
                                     }
                                 }
-                                .padding(horizontal = 10.dp, vertical = 5.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = if (uiState.isReplayGainCalculating) {
-                                    stringResource(R.string.replay_gain_calculate_in_progress)
-                                } else {
-                                    stringResource(R.string.action_calculate_replay_gain)
-                                },
-                                fontSize = 11.sp,
-                                color = MiuixTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        if (visibleFieldCodes.contains("basic_info.artist")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_artists),
+                                value = editingTagData?.artist ?: "",
+                                onValueChange = { viewModel.updateTag { copy(artist = it) } },
+                                isModified = !editingTagData?.artist.isEqualIgnoringBlank(
+                                    originalTagData?.artist
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            artist = originalTagData?.artist ?: ""
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        if (visibleFieldCodes.contains("basic_info.album_artist")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_album_artist),
+                                value = editingTagData?.albumArtist ?: "",
+                                onValueChange = { viewModel.updateTag { copy(albumArtist = it) } },
+                                isModified = !editingTagData?.albumArtist.isEqualIgnoringBlank(
+                                    originalTagData?.albumArtist
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            albumArtist = originalTagData?.albumArtist ?: ""
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        if (visibleFieldCodes.contains("basic_info.album")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_album),
+                                value = editingTagData?.album ?: "",
+                                onValueChange = { viewModel.updateTag { copy(album = it) } },
+                                isModified = !editingTagData?.album.isEqualIgnoringBlank(
+                                    originalTagData?.album
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            album = originalTagData?.album ?: ""
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        if (visibleFieldCodes.contains("basic_info.date")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_date),
+                                value = editingTagData?.date ?: "",
+                                onValueChange = { viewModel.updateTag { copy(date = it) } },
+                                isModified = !editingTagData?.date.isEqualIgnoringBlank(
+                                    originalTagData?.date
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            date = originalTagData?.date ?: ""
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        if (visibleFieldCodes.contains("basic_info.language")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_language),
+                                value = editingTagData?.language ?: "",
+                                onValueChange = { viewModel.updateTag { copy(language = it) } },
+                                isModified = !editingTagData?.language.isEqualIgnoringBlank(
+                                    originalTagData?.language
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            language = originalTagData?.language ?: ""
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        if (visibleFieldCodes.contains("basic_info.genre")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_genre),
+                                value = editingTagData?.genre ?: "",
+                                onValueChange = { viewModel.updateTag { copy(genre = it) } },
+                                isModified = !editingTagData?.genre.isEqualIgnoringBlank(
+                                    originalTagData?.genre
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            genre = originalTagData?.genre ?: ""
+                                        )
+                                    }
+                                }
                             )
                         }
                     }
-                    MetadataInputField(
-                        label = stringResource(R.string.label_replaygain_track_gain),
-                        value = editingTagData?.replayGainTrackGain ?: "",
-                        onValueChange = { viewModel.updateTag { copy(replayGainTrackGain = it) } },
-                        isModified = !editingTagData?.replayGainTrackGain.isEqualIgnoringBlank(
-                            originalTagData?.replayGainTrackGain
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    replayGainTrackGain = originalTagData?.replayGainTrackGain
-                                        ?: ""
+                }
+            }
+
+            if (visibleGroupCodes.contains(EditFieldRegistry.GROUP_TRACK_DETAILS)) {
+                item(key = "track_details") {
+                    Column {
+                        SmallTitle(text = stringResource(R.string.group_track_details))
+                        if (visibleFieldCodes.contains("track_details.track_number")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_track_number),
+                                value = editingTagData?.trackNumber ?: "",
+                                onValueChange = { viewModel.updateTag { copy(trackNumber = it) } },
+                                isModified = !editingTagData?.trackNumber.isEqualIgnoringBlank(
+                                    originalTagData?.trackNumber
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            trackNumber = originalTagData?.trackNumber ?: ""
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        if (visibleFieldCodes.contains("track_details.disc_number")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_disc_number),
+                                value = editingTagData?.discNumber?.toString() ?: "",
+                                onValueChange = { viewModel.updateTag { copy(discNumber = it.toIntOrNull()) } },
+                                isModified = editingTagData?.discNumber != originalTagData?.discNumber,
+                                onRevert = { viewModel.updateTag { copy(discNumber = originalTagData?.discNumber) } }
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (visibleGroupCodes.contains(EditFieldRegistry.GROUP_CREDITS_OTHER)) {
+                item(key = "credits_other") {
+                    Column {
+                        SmallTitle(text = stringResource(R.string.group_credits_other))
+                        if (visibleFieldCodes.contains("credits_other.composer")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_composer),
+                                value = editingTagData?.composer ?: "",
+                                onValueChange = { viewModel.updateTag { copy(composer = it) } },
+                                isModified = !editingTagData?.composer.isEqualIgnoringBlank(
+                                    originalTagData?.composer
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            composer = originalTagData?.composer ?: ""
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        if (visibleFieldCodes.contains("credits_other.lyricist")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_lyricist),
+                                value = editingTagData?.lyricist ?: "",
+                                onValueChange = { viewModel.updateTag { copy(lyricist = it) } },
+                                isModified = !editingTagData?.lyricist.isEqualIgnoringBlank(
+                                    originalTagData?.lyricist
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            lyricist = originalTagData?.lyricist ?: ""
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        if (visibleFieldCodes.contains("credits_other.copyright")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_copyright),
+                                value = editingTagData?.copyright ?: "",
+                                onValueChange = { viewModel.updateTag { copy(copyright = it) } },
+                                isModified = !editingTagData?.copyright.isEqualIgnoringBlank(
+                                    originalTagData?.copyright
+                                ),
+                                onRevert = { viewModel.updateTag { copy(copyright = originalTagData?.copyright) } }
+                            )
+                        }
+                        if (visibleFieldCodes.contains("credits_other.comment")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_comment),
+                                value = editingTagData?.comment ?: "",
+                                onValueChange = { viewModel.updateTag { copy(comment = it) } },
+                                isModified = !editingTagData?.comment.isEqualIgnoringBlank(
+                                    originalTagData?.comment
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            comment = originalTagData?.comment ?: ""
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (visibleGroupCodes.contains(EditFieldRegistry.GROUP_REPLAY_GAIN)) {
+                item(key = "replay_gain") {
+                    Column {
+                        SmallTitle(text = stringResource(R.string.group_replay_gain))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 4.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = uiState.isReplayGainCalculating,
+                                    enter = fadeIn(),
+                                    exit = fadeOut()
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        androidx.compose.material3.CircularProgressIndicator(
+                                            progress = { replayGainCalculateProgress ?: 0f },
+                                            modifier = Modifier.size(20.dp),
+                                            color = MiuixTheme.colorScheme.primary,
+                                            strokeWidth = 2.5.dp,
+                                            trackColor = MiuixTheme.colorScheme.primary.copy(
+                                                alpha = 0.2f
+                                            )
+                                        )
+
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        Text(
+                                            text = "${((replayGainCalculateProgress ?: 0f) * 100).toInt()}%",
+                                            fontSize = 12.sp,
+                                            color = MiuixTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(MiuixTheme.colorScheme.primary)
+                                    .clickable {
+                                        if (!uiState.isReplayGainCalculating) {
+                                            viewModel.calculateReplayGain()
+                                        } else {
+                                            viewModel.cancelScan()
+                                        }
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (uiState.isReplayGainCalculating) {
+                                        stringResource(R.string.replay_gain_calculate_in_progress)
+                                    } else {
+                                        stringResource(R.string.action_calculate_replay_gain)
+                                    },
+                                    fontSize = 11.sp,
+                                    color = MiuixTheme.colorScheme.onPrimary,
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
                         }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_replaygain_track_peak),
-                        value = editingTagData?.replayGainTrackPeak ?: "",
-                        onValueChange = { viewModel.updateTag { copy(replayGainTrackPeak = it) } },
-                        isModified = !editingTagData?.replayGainTrackPeak.isEqualIgnoringBlank(
-                            originalTagData?.replayGainTrackPeak
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    replayGainTrackPeak = originalTagData?.replayGainTrackPeak
-                                        ?: ""
-                                )
-                            }
+                        if (visibleFieldCodes.contains("replay_gain.track_gain")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_replaygain_track_gain),
+                                value = editingTagData?.replayGainTrackGain ?: "",
+                                onValueChange = { viewModel.updateTag { copy(replayGainTrackGain = it) } },
+                                isModified = !editingTagData?.replayGainTrackGain.isEqualIgnoringBlank(
+                                    originalTagData?.replayGainTrackGain
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            replayGainTrackGain = originalTagData?.replayGainTrackGain
+                                                ?: ""
+                                        )
+                                    }
+                                }
+                            )
                         }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_replaygain_album_gain),
-                        value = editingTagData?.replayGainAlbumGain ?: "",
-                        onValueChange = { viewModel.updateTag { copy(replayGainAlbumGain = it) } },
-                        isModified = !editingTagData?.replayGainAlbumGain.isEqualIgnoringBlank(
-                            originalTagData?.replayGainAlbumGain
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    replayGainAlbumGain = originalTagData?.replayGainAlbumGain
-                                        ?: ""
-                                )
-                            }
+                        if (visibleFieldCodes.contains("replay_gain.track_peak")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_replaygain_track_peak),
+                                value = editingTagData?.replayGainTrackPeak ?: "",
+                                onValueChange = { viewModel.updateTag { copy(replayGainTrackPeak = it) } },
+                                isModified = !editingTagData?.replayGainTrackPeak.isEqualIgnoringBlank(
+                                    originalTagData?.replayGainTrackPeak
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            replayGainTrackPeak = originalTagData?.replayGainTrackPeak
+                                                ?: ""
+                                        )
+                                    }
+                                }
+                            )
                         }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_replaygain_album_peak),
-                        value = editingTagData?.replayGainAlbumPeak ?: "",
-                        onValueChange = { viewModel.updateTag { copy(replayGainAlbumPeak = it) } },
-                        isModified = !editingTagData?.replayGainAlbumPeak.isEqualIgnoringBlank(
-                            originalTagData?.replayGainAlbumPeak
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    replayGainAlbumPeak = originalTagData?.replayGainAlbumPeak
-                                        ?: ""
-                                )
-                            }
+                        if (visibleFieldCodes.contains("replay_gain.album_gain")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_replaygain_album_gain),
+                                value = editingTagData?.replayGainAlbumGain ?: "",
+                                onValueChange = { viewModel.updateTag { copy(replayGainAlbumGain = it) } },
+                                isModified = !editingTagData?.replayGainAlbumGain.isEqualIgnoringBlank(
+                                    originalTagData?.replayGainAlbumGain
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            replayGainAlbumGain = originalTagData?.replayGainAlbumGain
+                                                ?: ""
+                                        )
+                                    }
+                                }
+                            )
                         }
-                    )
-                    MetadataInputField(
-                        label = stringResource(R.string.label_replaygain_reference_loudness),
-                        value = editingTagData?.replayGainReferenceLoudness ?: "",
-                        onValueChange = {
-                            viewModel.updateTag {
-                                copy(
-                                    replayGainReferenceLoudness = it
-                                )
-                            }
-                        },
-                        isModified = !editingTagData?.replayGainReferenceLoudness.isEqualIgnoringBlank(
-                            originalTagData?.replayGainReferenceLoudness
-                        ),
-                        onRevert = {
-                            viewModel.updateTag {
-                                copy(
-                                    replayGainReferenceLoudness = originalTagData?.replayGainReferenceLoudness
-                                        ?: ""
-                                )
-                            }
+                        if (visibleFieldCodes.contains("replay_gain.album_peak")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_replaygain_album_peak),
+                                value = editingTagData?.replayGainAlbumPeak ?: "",
+                                onValueChange = { viewModel.updateTag { copy(replayGainAlbumPeak = it) } },
+                                isModified = !editingTagData?.replayGainAlbumPeak.isEqualIgnoringBlank(
+                                    originalTagData?.replayGainAlbumPeak
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            replayGainAlbumPeak = originalTagData?.replayGainAlbumPeak
+                                                ?: ""
+                                        )
+                                    }
+                                }
+                            )
                         }
-                    )
+                        if (visibleFieldCodes.contains("replay_gain.reference_loudness")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_replaygain_reference_loudness),
+                                value = editingTagData?.replayGainReferenceLoudness ?: "",
+                                onValueChange = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            replayGainReferenceLoudness = it
+                                        )
+                                    }
+                                },
+                                isModified = !editingTagData?.replayGainReferenceLoudness.isEqualIgnoringBlank(
+                                    originalTagData?.replayGainReferenceLoudness
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            replayGainReferenceLoudness = originalTagData?.replayGainReferenceLoudness
+                                                ?: ""
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
             }
 
@@ -831,59 +896,60 @@ fun EditMetadataScreen(
                 }
             }
 
-            item(key = "lyrics") {
-                Column {
-                    SmallTitle(text = stringResource(R.string.label_lyrics))
-//                    Card(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
-                        MetadataInputField(
-                            label = stringResource(R.string.label_lyrics),
-                            value = editingTagData?.lyrics ?: "",
-                            onValueChange = { viewModel.updateTag { copy(lyrics = it) } },
-                            isModified = !editingTagData?.lyrics.isEqualIgnoringBlank(
-                                originalTagData?.lyrics
-                            ),
-                            onRevert = {
-                                viewModel.updateTag {
-                                    copy(
-                                        lyrics = originalTagData?.lyrics ?: ""
-                                    )
-                                }
-                            },
-                            actionButtons = {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(
-                                        6.dp,
-                                        Alignment.End
-                                    )
-                                ) {
-                                    // 歌词操作
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(CircleShape)
-                                            .background(MiuixTheme.colorScheme.primary)
-                                            .clickable {
-                                                showLyricsActionBottomSheet = true
-                                            }
-                                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = stringResource(R.string.action_lyrics_options),
-                                            fontSize = 11.sp,
-                                            color = MiuixTheme.colorScheme.onPrimary,
-                                            fontWeight = FontWeight.Medium
+            if (visibleGroupCodes.contains(EditFieldRegistry.GROUP_LYRICS)) {
+                item(key = "lyrics") {
+                    Column {
+                        SmallTitle(text = stringResource(R.string.label_lyrics))
+                        if (visibleFieldCodes.contains("lyrics.lyrics")) {
+                            MetadataInputField(
+                                label = stringResource(R.string.label_lyrics),
+                                value = editingTagData?.lyrics ?: "",
+                                onValueChange = { viewModel.updateTag { copy(lyrics = it) } },
+                                isModified = !editingTagData?.lyrics.isEqualIgnoringBlank(
+                                    originalTagData?.lyrics
+                                ),
+                                onRevert = {
+                                    viewModel.updateTag {
+                                        copy(
+                                            lyrics = originalTagData?.lyrics ?: ""
                                         )
                                     }
-                                }
-                            },
-                            isMultiline = true,
-                            limitMultilineLines = limitLyricsInputLines
-                        )
-//                    }
+                                },
+                                actionButtons = {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(
+                                            6.dp,
+                                            Alignment.End
+                                        )
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(CircleShape)
+                                                .background(MiuixTheme.colorScheme.primary)
+                                                .clickable {
+                                                    showLyricsActionBottomSheet = true
+                                                }
+                                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = stringResource(R.string.action_lyrics_options),
+                                                fontSize = 11.sp,
+                                                color = MiuixTheme.colorScheme.onPrimary,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                },
+                                isMultiline = true,
+                                limitMultilineLines = limitLyricsInputLines
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1417,6 +1483,7 @@ private fun CoverSection(
     title: String,
     artist: String,
     rating: Int?,
+    showRating: Boolean,
     isModified: Boolean,
     onCoverClick: () -> Unit,
     onRevertCoverClick: () -> Unit,
@@ -1642,33 +1709,35 @@ private fun CoverSection(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            for (i in 1..5) {
-                                val isFilled = rating?.let { i <= it }
-                                Icon(
-                                    painter = painterResource(
-                                        if (isFilled == true) R.drawable.ic_filled_star_24dp
-                                        else R.drawable.ic_outline_star_24dp
-                                    ),
-                                    contentDescription = null,
-                                    tint = if (isFilled == true)
-                                        MiuixTheme.colorScheme.primary
-                                    else
-                                        onSurfaceDim.copy(alpha = 0.4f),
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) {
-                                            onRatingChange(
-                                                if (rating == i) 0 else i
-                                            )
-                                        }
-                                )
+                        if (showRating) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                for (i in 1..5) {
+                                    val isFilled = rating?.let { i <= it }
+                                    Icon(
+                                        painter = painterResource(
+                                            if (isFilled == true) R.drawable.ic_filled_star_24dp
+                                            else R.drawable.ic_outline_star_24dp
+                                        ),
+                                        contentDescription = null,
+                                        tint = if (isFilled == true)
+                                            MiuixTheme.colorScheme.primary
+                                        else
+                                            onSurfaceDim.copy(alpha = 0.4f),
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                onRatingChange(
+                                                    if (rating == i) 0 else i
+                                                )
+                                            }
+                                    )
+                                }
                             }
                         }
                     }

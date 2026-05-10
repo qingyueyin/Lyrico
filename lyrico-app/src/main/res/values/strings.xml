@@ -565,4 +565,17 @@
     <string name="log_retention_30_days">30 days</string>
     <string name="log_retention_90_days">90 days</string>
     <string name="log_retention_forever">Always keep</string>
+
+    <string name="edit_field_visibility_settings">Edit Field Visibility</string>
+    <string name="edit_field_group_lyrics">Lyrics</string>
+    <string name="edit_field_group_cover">Cover</string>
+    <string name="reset_to_default">Reset to default</string>
+    <string name="no_visible_edit_fields">No visible edit fields</string>
+    <string name="no_visible_edit_fields_hint">Enable at least one field in the field visibility settings</string>
+    <string name="open_edit_field_visibility_settings">Field visibility settings</string>
+    <string name="section_edit">Edit</string>
+    <string name="edit_field_visibility_group_enabled">Enable group</string>
+    <string name="edit_field_visibility_group_enabled_summary">After closing, the fields under this group will not appear on the edit screen</string>
+    <string name="edit_field_visibility_fields">Fields</string>
+    <string name="edit_field_visibility_group_summary">" %1$d / %2$d enables"</string>
 </resources>
