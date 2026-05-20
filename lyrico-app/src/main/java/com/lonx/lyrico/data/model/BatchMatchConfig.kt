@@ -35,6 +35,7 @@ enum class BatchMatchField(
     DATE(R.string.label_year),
     TRACK_NUMBER(R.string.label_track_number),
     LYRICS(R.string.label_lyrics),
+    COMMENT(R.string.label_comment),
     COVER(R.string.label_cover)
 }
 object BatchMatchConfigDefaults {
@@ -47,6 +48,7 @@ object BatchMatchConfigDefaults {
             BatchMatchField.DATE to BatchMatchMode.SUPPLEMENT,
             BatchMatchField.TRACK_NUMBER to BatchMatchMode.SUPPLEMENT,
             BatchMatchField.LYRICS to BatchMatchMode.SUPPLEMENT,
+            BatchMatchField.COMMENT to BatchMatchMode.SUPPLEMENT,
             BatchMatchField.COVER to BatchMatchMode.SUPPLEMENT
         ),
         concurrency = 3,

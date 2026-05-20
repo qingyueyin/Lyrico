@@ -98,7 +98,7 @@ class KgSource(
                     duration = (item.duration * 1000).toLong(),
                     source = Source.KG,
                     date = item.publishDate ?: "",
-                    extras = mapOf("hash" to item.fileHash),
+                    extras = mapOf("hash" to item.fileHash,"subtitle" to item.auxiliary),
                     picUrl = if (item.picUrl.isNotBlank()) item.picUrl.replace("{size}", "480").replace("http:", "https:") else "",
                 )
             } ?: emptyList()

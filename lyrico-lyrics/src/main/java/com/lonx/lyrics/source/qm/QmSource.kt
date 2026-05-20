@@ -14,7 +14,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import kotlin.math.pow
 import kotlin.random.Random
 
 class QmSource(
@@ -87,6 +86,11 @@ class QmSource(
                         extrasMap[SearchResultExtraKeys.REPLAY_GAIN_TRACK_PEAK] = "%.6f".format(it)
                     }
                     extrasMap[SearchResultExtraKeys.REPLAY_GAIN_REFERENCE_LOUDNESS] = "-18 LUFS"
+                }
+                // 优先使用 subtitle，如果为空则使用 desc
+                val subtitle = item.subtitle.takeIf { it.isNotEmpty() } ?: item.desc.takeIf { it.isNotEmpty() }
+                subtitle?.let {
+                    extrasMap["subtitle"] = it
                 }
                 SongSearchResult(
                     id = item.id,

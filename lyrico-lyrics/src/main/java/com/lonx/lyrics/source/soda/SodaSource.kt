@@ -36,6 +36,7 @@ class SodaSource(
             val track = item.entity.track
             if (track.id.isBlank()) return@mapNotNull null
 
+            val subtitle = item.entity.track.relationMedia
             val artists = track.artists.joinToString(separator) { it.name }
             val composers = track.makerTeam?.composers
                 ?.joinToString(separator) { it.name }
@@ -64,6 +65,9 @@ class SodaSource(
                     if (lyricists.isNotEmpty()) {
                         put("lyricist", lyricists)
                     }
+                    if (subtitle.isNotEmpty()) {
+                        put("subtitle", subtitle)
+                     }
                     tagMap.forEach { (k, v) ->
                         put(k, v) // e.g. genre
                     }

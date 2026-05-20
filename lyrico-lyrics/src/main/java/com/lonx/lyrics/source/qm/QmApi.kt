@@ -54,6 +54,8 @@ data class QmSongItem(
     val singer: List<QmSinger> = emptyList(),
     val album: QmAlbum,
     val interval: Int,
+    val subtitle: String = "",
+    val desc: String = "",
     @SerialName("index_album") val trackerNumber: String = "",
     @SerialName("genre") val genre: String = "",
     @SerialName("time_public") val timePublic: String? = null,

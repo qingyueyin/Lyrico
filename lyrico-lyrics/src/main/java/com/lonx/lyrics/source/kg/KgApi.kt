@@ -44,7 +44,8 @@ data class KgSongItem(
     @SerialName("AlbumName") val albumName: String? = null,
     @SerialName("Duration") val duration: Int,
     @SerialName("PublishDate") val publishDate: String? = null,
-    @SerialName("Image") val picUrl: String = ""
+    @SerialName("Image") val picUrl: String = "",
+    @SerialName("Auxiliary") val auxiliary: String = ""
 ) : Parcelable
 
 

@@ -167,7 +167,7 @@ class BatchMatchViewModel(
                     separator = separator.value,
                     enabledSourceOrderIds = currentOrder.map { it.id },
                     extraWriteRules = extraMetadataWriteRules.value,
-                    concurrency = 3
+                    concurrency = matchConfig.concurrency
                 )
             )
             val taskId = batchTaskRepository.createTask(

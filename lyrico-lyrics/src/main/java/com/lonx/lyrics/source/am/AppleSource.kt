@@ -41,7 +41,7 @@ class AppleSource(
         val offset = (page - 1).coerceAtLeast(0) * pageSize
         val query = URLEncoder.encode(keyword, "UTF-8")
         val url = "https://amp-api.music.apple.com/v1/catalog/us/search" +
-            "?term=$query&types=songs&limit=$pageSize&offset=$offset&l=en-US&platform=web&format[resources]=map"
+            "?term=$query&types=songs&limit=$pageSize&offset=$offset&l=zh-CN&platform=web&format[resources]=map"
 
         try {
             val body = requestText(url, appleMusicHeaders(token)) ?: return@withContext emptyList()

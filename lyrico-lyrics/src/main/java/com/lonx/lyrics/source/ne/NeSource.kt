@@ -459,8 +459,18 @@ class NeSource(
     }
 
     private fun buildNeteaseExtras(song: NeSongData): Map<String, String> {
-        val key = buildNetease163Key(song) ?: return emptyMap()
-        return mapOf(SearchResultExtraKeys.NETEASE_163_KEY to key)
+        val extras = mutableMapOf<String, String>()
+        
+        // 将 alia 作为 subtitle
+        song.alia?.takeIf { it.isNotEmpty() }?.let { aliasList ->
+            extras["subtitle"] = aliasList.joinToString(" / ")
+        }
+        
+        // 添加网易云 163 key
+        val key = buildNetease163Key(song)
+        key?.let { extras[SearchResultExtraKeys.NETEASE_163_KEY] = it }
+        
+        return extras
     }
 
     private fun buildNetease163Key(song: NeSongData): String? {

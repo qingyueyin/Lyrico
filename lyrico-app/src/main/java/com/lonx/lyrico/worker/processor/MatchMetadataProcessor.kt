@@ -4,11 +4,14 @@ import com.lonx.audiotag.model.AudioTagData
 import com.lonx.lyrico.data.model.BatchMatchConfig
 import com.lonx.lyrico.data.model.BatchMatchField
 import com.lonx.lyrico.data.model.BatchMatchMode
+import com.lonx.lyrico.data.model.ExtraMetadataKey
+import com.lonx.lyrico.data.model.ExtraMetadataTarget
 import com.lonx.lyrico.data.model.ExtraMetadataWriteRule
 import com.lonx.lyrico.data.model.ExtraWriteMode
 import com.lonx.lyrico.data.model.ScoredSearchResult
 import com.lonx.lyrico.data.model.entity.BatchTaskEntity
 import com.lonx.lyrico.data.model.entity.BatchTaskItemEntity
+import com.lonx.lyrico.data.model.entity.SongEntity
 import com.lonx.lyrico.data.repository.SettingsRepository
 import com.lonx.lyrico.data.repository.SongRepository
 import com.lonx.lyrico.utils.ExtraMetadataResolver
@@ -44,27 +47,17 @@ class MatchMetadataProcessor(
         val song = songRepository.getSongByUri(item.songUri)
             ?: throw BatchTaskSkippedException("Song not found")
 
-        val needsProcessing = matchConfig.fields.any { (field, mode) ->
-            if (mode == BatchMatchMode.OVERWRITE) return@any true
-            when (field) {
-                BatchMatchField.TITLE -> song.title.isNullOrBlank()
-                BatchMatchField.ARTIST -> song.artist.isNullOrBlank()
-                BatchMatchField.ALBUM -> song.album.isNullOrBlank()
-                BatchMatchField.GENRE -> song.genre.isNullOrBlank()
-                BatchMatchField.DATE -> song.date.isNullOrBlank()
-                BatchMatchField.TRACK_NUMBER -> song.trackerNumber.isNullOrBlank()
-                BatchMatchField.LYRICS -> song.lyrics.isNullOrBlank()
-                BatchMatchField.COVER -> true
-            }
-        }
-
-        val needsExtraProcessing = config.extraWriteRules.any { it.mode != ExtraWriteMode.DISABLED }
-        if (!needsProcessing && !needsExtraProcessing) {
+        val plan = buildPlan(matchConfig, config.extraWriteRules, song)
+        if (!plan.requiresSearch) {
             throw BatchTaskSkippedException("No fields need processing")
         }
 
         val separator = config.separator
-        val lyricConfig = settingsRepository.getLyricRenderConfig()
+        val lyricConfig = if (plan.shouldFetchLyrics) {
+            settingsRepository.getLyricRenderConfig()
+        } else {
+            null
+        }
         val enabledSourceOrder = config.enabledSourceOrderIds.mapNotNull { id ->
             Source.entries.find { it.id == id }
         }
@@ -155,7 +148,7 @@ class MatchMetadataProcessor(
             )
         }
 
-        val newLyrics = try {
+        val newLyrics = if (plan.shouldFetchLyrics && lyricConfig != null) try {
             coroutineScope {
                 val deferred = async(Dispatchers.Default) {
                     finalMatch.source?.getLyrics(finalMatch.result)?.let { result ->
@@ -166,17 +159,20 @@ class MatchMetadataProcessor(
             }
         } catch (e: Exception) {
             null
+        } else {
+            null
         }
-        val newTitle = resolveValue(matchConfig, BatchMatchField.TITLE, song.title, finalMatch.result.title)
-        val newArtist = resolveValue(matchConfig, BatchMatchField.ARTIST, song.artist, finalMatch.result.artist)
-        val newAlbum = resolveValue(matchConfig, BatchMatchField.ALBUM, song.album, finalMatch.result.album)
-        val newDate = resolveValue(matchConfig, BatchMatchField.DATE, song.date, finalMatch.result.date)
-        val newTrack = resolveValue(matchConfig, BatchMatchField.TRACK_NUMBER, song.trackerNumber, finalMatch.result.trackerNumber)
-        val newGenre = resolveValue(matchConfig, BatchMatchField.GENRE, song.genre, null)
-        val newLyricsResolved = resolveValue(matchConfig, BatchMatchField.LYRICS, song.lyrics, newLyrics)
-
-        val shouldUpdateCover = shouldUpdate(matchConfig, BatchMatchField.COVER, null)
-        val picUrl = if (shouldUpdateCover) finalMatch.result.picUrl else null
+        val newTitle = resolveValue(plan, BatchMatchField.TITLE, finalMatch.result.title)
+        val newArtist = resolveValue(plan, BatchMatchField.ARTIST, finalMatch.result.artist)
+        val newAlbum = resolveValue(plan, BatchMatchField.ALBUM, finalMatch.result.album)
+        val newDate = resolveValue(plan, BatchMatchField.DATE, finalMatch.result.date)
+        val newTrack = resolveValue(plan, BatchMatchField.TRACK_NUMBER, finalMatch.result.trackerNumber)
+        val newGenre = resolveValue(plan, BatchMatchField.GENRE, null)
+        val newLyricsResolved = resolveValue(plan, BatchMatchField.LYRICS, newLyrics)
+        val newComment = resolveValue(plan, BatchMatchField.COMMENT,
+            finalMatch.result.extras["subtitle"]
+        )
+        val picUrl = if (plan.shouldUpdateCover) finalMatch.result.picUrl else null
 
         val standardTagData = AudioTagData(
             title = newTitle,
@@ -186,18 +182,19 @@ class MatchMetadataProcessor(
             date = newDate,
             trackNumber = newTrack,
             lyrics = newLyricsResolved,
-            picUrl = picUrl
+            picUrl = picUrl,
+            comment = newComment,
         )
         val extraTagData = extraMetadataResolver.resolve(
             currentSong = song,
             scoredResults = allScoredResults,
-            rules = config.extraWriteRules
+            rules = plan.extraRules
         )
         val tagDataToWrite = extraMetadataResolver.mergeNonNull(standardTagData, extraTagData)
 
         val isEffectivelyEmpty = newTitle == null && newArtist == null && newAlbum == null &&
                 newGenre == null && newDate == null && newTrack == null &&
-                newLyricsResolved == null && picUrl == null && extraTagData.isEmpty()
+                newLyricsResolved == null && picUrl == null && newComment == null && extraTagData.isEmpty()
 
         if (isEffectivelyEmpty) {
             throw BatchTaskSkippedException("No fields to update")
@@ -211,30 +208,76 @@ class MatchMetadataProcessor(
         return BatchTaskProcessResult()
     }
 
-    private fun resolveValue(
-        config: BatchMatchConfig,
+    private suspend fun buildPlan(
+        matchConfig: BatchMatchConfig,
+        extraRules: List<ExtraMetadataWriteRule>,
+        song: SongEntity
+    ): MatchMetadataPlan {
+        val standardFields = matchConfig.fields.mapNotNull { (field, mode) ->
+            if (shouldUpdateField(field, mode, song)) field else null
+        }.toSet()
+        val applicableExtraRules = extraRules.filter { shouldApplyExtraRule(it, song) }
+
+        return MatchMetadataPlan(
+            standardFields = standardFields,
+            extraRules = applicableExtraRules
+        )
+    }
+
+    private suspend fun shouldUpdateField(
         field: BatchMatchField,
-        currentValue: String?,
-        newValue: String?
-    ): String? {
-        if (!config.fields.containsKey(field)) return null
-        val mode = config.fields[field]!!
-        return if (mode == BatchMatchMode.OVERWRITE) {
-            newValue
-        } else {
-            if (currentValue.isNullOrBlank()) newValue else null
+        mode: BatchMatchMode,
+        song: SongEntity
+    ): Boolean {
+        if (mode == BatchMatchMode.OVERWRITE) return true
+        return when (field) {
+            BatchMatchField.TITLE -> song.title.isNullOrBlank()
+            BatchMatchField.ARTIST -> song.artist.isNullOrBlank()
+            BatchMatchField.ALBUM -> song.album.isNullOrBlank()
+            BatchMatchField.GENRE -> song.genre.isNullOrBlank()
+            BatchMatchField.DATE -> song.date.isNullOrBlank()
+            BatchMatchField.TRACK_NUMBER -> song.trackerNumber.isNullOrBlank()
+            BatchMatchField.LYRICS -> song.lyrics.isNullOrBlank()
+            BatchMatchField.COMMENT -> song.comment.isNullOrBlank()
+            BatchMatchField.COVER -> !hasEmbeddedCover(song)
         }
     }
 
-    private fun shouldUpdate(
-        config: BatchMatchConfig,
-        field: BatchMatchField,
-        currentValue: String?
+    private suspend fun hasEmbeddedCover(song: SongEntity): Boolean {
+        return runCatching {
+            songRepository.readAudioTagData(song.uri).pictures.isNotEmpty()
+        }.getOrDefault(false)
+    }
+
+    private fun shouldApplyExtraRule(
+        rule: ExtraMetadataWriteRule,
+        song: SongEntity
     ): Boolean {
-        if (!config.fields.containsKey(field)) return false
-        val mode = config.fields[field]!!
-        if (mode == BatchMatchMode.OVERWRITE) return true
-        return currentValue.isNullOrBlank()
+        if (rule.mode == ExtraWriteMode.DISABLED) return false
+        if (rule.mode == ExtraWriteMode.OVERWRITE) return true
+
+        return when (rule.target) {
+            ExtraMetadataTarget.COMMENT -> {
+                val currentComment = song.comment
+                currentComment.isNullOrBlank() ||
+                        (rule.key == ExtraMetadataKey.NETEASE_163_KEY && isNetease163Key(currentComment))
+            }
+            ExtraMetadataTarget.REPLAY_GAIN_TRACK_GAIN -> song.replayGainTrackGain.isNullOrBlank()
+            ExtraMetadataTarget.REPLAY_GAIN_TRACK_PEAK -> song.replayGainTrackPeak.isNullOrBlank()
+            ExtraMetadataTarget.REPLAY_GAIN_REFERENCE_LOUDNESS -> song.replayGainReferenceLoudness.isNullOrBlank()
+        }
+    }
+
+    private fun isNetease163Key(value: String?): Boolean {
+        return value?.startsWith("163 key(Don't modify):") == true
+    }
+
+    private fun resolveValue(
+        plan: MatchMetadataPlan,
+        field: BatchMatchField,
+        newValue: String?
+    ): String? {
+        return if (field in plan.standardFields) newValue else null
     }
 
     private fun AudioTagData.isEmpty(): Boolean {
@@ -244,6 +287,20 @@ class MatchMetadataProcessor(
                 replayGainAlbumGain == null && replayGainAlbumPeak == null &&
                 replayGainReferenceLoudness == null
     }
+}
+
+private data class MatchMetadataPlan(
+    val standardFields: Set<BatchMatchField>,
+    val extraRules: List<ExtraMetadataWriteRule>
+) {
+    val requiresSearch: Boolean
+        get() = standardFields.isNotEmpty() || extraRules.isNotEmpty()
+
+    val shouldFetchLyrics: Boolean
+        get() = BatchMatchField.LYRICS in standardFields
+
+    val shouldUpdateCover: Boolean
+        get() = BatchMatchField.COVER in standardFields
 }
 
 @Serializable

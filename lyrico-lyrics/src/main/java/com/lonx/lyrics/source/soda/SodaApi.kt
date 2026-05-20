@@ -32,7 +32,7 @@ data class SodaTrack(
     val duration: Int,
     val artists: List<SodaArtist> = emptyList(),
     val album: SodaAlbum,
-
+    @SerialName("relation_media") val relationMedia: String = "",
     @SerialName("song_maker_team")
     val makerTeam: SodaMakerTeam? = null,
     val tags: List<SodaTagItem> = emptyList(),
