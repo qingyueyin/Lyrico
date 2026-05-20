@@ -248,9 +248,10 @@ fun SearchResultsScreen(
                     }
 
                     uiState.searchError != null && source == uiState.selectedSearchSource -> {
+                        val errorMessage = uiState.searchError
                         Box(Modifier.fillMaxSize(), Alignment.Center) {
                             Text(
-                                text = uiState.searchError!!,
+                                text = errorMessage?.asString().orEmpty(),
                                 fontSize = 14.sp,
                                 color = MiuixTheme.colorScheme.error
                             )
@@ -397,9 +398,10 @@ fun SearchResultsScreen(
                                 }
 
                                 uiState.lyricsState.error != null -> item("error") {
+                                    val errorMessage = uiState.lyricsState.error
                                     Text(
                                         modifier = Modifier.padding(12.dp),
-                                        text = uiState.lyricsState.error!!,
+                                        text = errorMessage?.asString().orEmpty(),
                                         style = MiuixTheme.textStyles.body2
                                     )
                                 }

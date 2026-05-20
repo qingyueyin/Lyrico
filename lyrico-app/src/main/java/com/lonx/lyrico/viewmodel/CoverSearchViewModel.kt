@@ -2,9 +2,12 @@ package com.lonx.lyrico.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lonx.lyrico.R
 import com.lonx.lyrico.data.repository.SettingsRepository
+import com.lonx.lyrico.utils.UiMessage
 import com.lonx.lyrics.model.SearchSource
 import com.lonx.lyrics.model.Source
+import com.lonx.lyrics.source.soda.SodaRateLimitException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -38,7 +41,7 @@ data class CoverSearchUiState(
     val coverResults: List<CoverSearchResult> = emptyList(),
     val availableSources: List<Source> = emptyList(),
     val isSearching: Boolean = false,
-    val searchError: String? = null,
+    val searchError: UiMessage? = null,
     val isInitializing: Boolean = true
 )
 
@@ -49,7 +52,7 @@ private data class CoverSearchState(
     val keyword: String = "",
     val results: List<CoverSearchResult> = emptyList(),
     val isSearching: Boolean = false,
-    val error: String? = null
+    val error: UiMessage? = null
 )
 
 class CoverSearchViewModel(
@@ -161,6 +164,7 @@ class CoverSearchViewModel(
                         }
                     } catch (e: Exception) {
                         if (e is CancellationException) throw e
+                        if (e is SodaRateLimitException) throw e
                         emptyList()
                     }
                 }
@@ -177,7 +181,7 @@ class CoverSearchViewModel(
             if (e is CancellationException) throw e
             coverSearchState.update {
                 it.copy(
-                    error = e.message,
+                    error = e.toUiMessage(),
                     isSearching = false
                 )
             }
@@ -189,5 +193,12 @@ class CoverSearchViewModel(
      */
     private fun findSource(source: Source): SearchSource? {
         return sources.firstOrNull { it.sourceType == source }
+    }
+
+    private fun Throwable.toUiMessage(): UiMessage {
+        return when (this) {
+            is SodaRateLimitException -> UiMessage.StringResource(R.string.soda_rate_limited)
+            else -> UiMessage.DynamicString(message ?: javaClass.simpleName)
+        }
     }
 }

@@ -51,6 +51,7 @@ class MatchMetadataProcessor(
         if (!plan.requiresSearch) {
             throw BatchTaskSkippedException("No fields need processing")
         }
+        onProgress(0.05f)
 
         val separator = config.separator
         val lyricConfig = if (plan.shouldFetchLyrics) {
@@ -78,7 +79,7 @@ class MatchMetadataProcessor(
         var bestMatchDetail: MatchScoreDetail? = null
         val allScoredResults = mutableListOf<ScoredSearchResult>()
 
-        for (query in queries) {
+        searchLoop@ for ((queryIndex, query) in queries.withIndex()) {
             val searchTasks = orderedSources.map { source ->
                 coroutineScope {
                     async(Dispatchers.IO) {
@@ -111,6 +112,7 @@ class MatchMetadataProcessor(
             }
 
             val allResults = searchTasks.awaitAll().flatten()
+            onProgress(0.05f + 0.45f * (queryIndex + 1) / queries.size.coerceAtLeast(1).toFloat())
 
             allScoredResults += allResults.map { (scoredResult, _) ->
                 scoredResult
@@ -134,7 +136,7 @@ class MatchMetadataProcessor(
 
                 // 文本分和最终分都非常高时才提前停止搜索
                 if (currentDetail.finalScore >= 0.92 && currentDetail.textScore >= 0.86) {
-                    break
+                    break@searchLoop
                 }
             }
         }
@@ -147,6 +149,7 @@ class MatchMetadataProcessor(
                 "Match score too low: final=${finalDetail.finalScore}, text=${finalDetail.textScore}"
             )
         }
+        onProgress(0.55f)
 
         val newLyrics = if (plan.shouldFetchLyrics && lyricConfig != null) try {
             coroutineScope {
@@ -162,6 +165,7 @@ class MatchMetadataProcessor(
         } else {
             null
         }
+        onProgress(0.75f)
         val newTitle = resolveValue(plan, BatchMatchField.TITLE, finalMatch.result.title)
         val newArtist = resolveValue(plan, BatchMatchField.ARTIST, finalMatch.result.artist)
         val newAlbum = resolveValue(plan, BatchMatchField.ALBUM, finalMatch.result.album)
@@ -200,10 +204,12 @@ class MatchMetadataProcessor(
             throw BatchTaskSkippedException("No fields to update")
         }
 
+        onProgress(0.9f)
         val success = songRepository.patchAudioTags(song.uri, tagDataToWrite)
         if (!success) {
             throw Exception("Write failed")
         }
+        onProgress(1f)
 
         return BatchTaskProcessResult()
     }

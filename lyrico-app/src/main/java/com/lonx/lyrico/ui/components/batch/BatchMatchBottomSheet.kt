@@ -3,8 +3,10 @@ package com.lonx.lyrico.ui.components.batch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -49,11 +51,12 @@ fun BatchMatchBottomSheet(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = if (uiState.isRunning) {
-                                    uiState.currentFile
+                                    stringResource(R.string.batch_edit_processing)
                                 } else {
                                     stringResource(
                                         R.string.batch_matching_total_time,
@@ -66,6 +69,8 @@ fun BatchMatchBottomSheet(
                                 modifier = Modifier.weight(1f)
                             )
 
+                            Spacer(modifier = Modifier.width(8.dp))
+
                             Text(
                                 text = "$current / $total",
                                 style = MiuixTheme.textStyles.main,
@@ -73,7 +78,45 @@ fun BatchMatchBottomSheet(
                             )
                         }
 
-                        LinearProgressIndicator(progress = progress)
+                        LinearProgressIndicator(
+                            progress = progress,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (uiState.isRunning && uiState.fileProgressMap.isNotEmpty()) {
+                            Column(
+                                modifier = Modifier.padding(top = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                uiState.fileProgressMap.forEach { (fileName, fileProgress) ->
+                                    val progressPercent = (fileProgress * 100).toInt()
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = fileName,
+                                            style = MiuixTheme.textStyles.footnote1,
+                                            color = MiuixTheme.colorScheme.onSurfaceContainer,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "$progressPercent%",
+                                            style = MiuixTheme.textStyles.footnote1,
+                                            color = MiuixTheme.colorScheme.onSurfaceContainer
+                                        )
+                                    }
+                                    LinearProgressIndicator(
+                                        progress = fileProgress,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 

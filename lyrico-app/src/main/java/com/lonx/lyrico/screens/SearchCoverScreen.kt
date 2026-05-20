@@ -198,9 +198,10 @@ fun SearchCoverScreen(
                     }
 
                     uiState.searchError != null -> {
+                        val errorMessage = uiState.searchError
                         Box(Modifier.fillMaxSize(), Alignment.Center) {
                             Text(
-                                text = uiState.searchError!!,
+                                text = errorMessage?.asString().orEmpty(),
                                 fontSize = 14.sp,
                                 color = MiuixTheme.colorScheme.error
                             )

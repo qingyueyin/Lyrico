@@ -2,8 +2,15 @@ package com.lonx.lyrics.source.soda
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import okhttp3.ResponseBody
+import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
+import java.io.IOException
+
+class SodaRateLimitException : IOException(
+    "Soda Music request limit reached. Please try again later."
+)
 
 @Serializable
 data class SodaSearchResponse(
@@ -114,7 +121,7 @@ interface SodaApi {
         @Query("aid") aid: String = "386088",
         @Query("device_platform") platform: String = "web",
         @Query("channel") channel: String = "pc_web"
-    ): SodaSearchResponse
+    ): Response<ResponseBody>
 
 
     @GET("luna/pc/track_v2")
@@ -124,5 +131,5 @@ interface SodaApi {
         @Query("aid") aid: String = "386088",
         @Query("device_platform") platform: String = "web",
         @Query("channel") channel: String = "pc_web"
-    ): SodaTrackV2Response
+    ): Response<ResponseBody>
 }

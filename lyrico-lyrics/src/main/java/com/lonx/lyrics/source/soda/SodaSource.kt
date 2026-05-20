@@ -1,6 +1,5 @@
 package com.lonx.lyrics.source.soda
 
-import android.util.Log
 import com.lonx.lyrics.model.LyricsData
 import com.lonx.lyrics.model.LyricsResult
 import com.lonx.lyrics.model.SearchSource
@@ -9,10 +8,18 @@ import com.lonx.lyrics.model.Source
 import com.lonx.lyrics.utils.SodaParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import okhttp3.ResponseBody
+import retrofit2.Response
 
 class SodaSource(
     private val api: SodaApi
 ) : SearchSource {
+    private val json = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true
+        isLenient = true
+    }
 
     override val sourceType: Source
         get() = Source.SODA
@@ -24,9 +31,7 @@ class SodaSource(
         pageSize: Int
     ): List<SongSearchResult> = withContext(Dispatchers.IO) {
 
-        val resp = api.searchSong(keyword)
-
-        Log.d("SODA", "resp: $resp")
+        val resp = requestSearch(keyword)
         val list = resp.resultGroups
             .firstOrNull()
             ?.data
@@ -81,7 +86,7 @@ class SodaSource(
     ): List<SongSearchResult> = withContext(Dispatchers.IO) {
 
         try {
-            val resp = api.searchSong(keyword)
+            val resp = requestSearch(keyword)
 
             val list = resp.resultGroups
                 .firstOrNull()
@@ -109,6 +114,7 @@ class SodaSource(
             }
 
         } catch (e: Exception) {
+            if (e is SodaRateLimitException) throw e
             emptyList()
         }
     }
@@ -117,7 +123,7 @@ class SodaSource(
 
             val trackId = song.extras["track_id"] ?: song.id
 
-            val resp = api.getLyrics(trackId)
+            val resp = requestLyrics(trackId)
             val raw = resp.lyric?.content
             val translations = resp.lyric?.translations?.cn
 
@@ -138,6 +144,29 @@ class SodaSource(
                 )
             )
         }
+
+    private suspend fun requestSearch(keyword: String): SodaSearchResponse {
+        val response = api.searchSong(keyword)
+        val body = readResponseBody(response)
+        return json.decodeFromString<SodaSearchResponse>(body)
+    }
+
+    private suspend fun requestLyrics(trackId: String): SodaTrackV2Response {
+        val response = api.getLyrics(trackId)
+        val body = readResponseBody(response)
+        return json.decodeFromString<SodaTrackV2Response>(body)
+    }
+
+    private fun readResponseBody(
+        response: Response<ResponseBody>
+    ): String {
+        val body = response.body()?.string()
+        val errorBody = response.errorBody()?.string()
+        val payload = body ?: errorBody.orEmpty()
+        if (payload.isBlank()) throw SodaRateLimitException()
+
+        return payload
+    }
 
     private fun buildCover(cover: SodaCover): String {
         val domain = cover.urls.firstOrNull() ?: return ""
@@ -167,4 +196,5 @@ class SodaSource(
             v.joinToString(" / ")
         }
     }
+
 }

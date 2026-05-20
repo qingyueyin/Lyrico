@@ -2,14 +2,17 @@ package com.lonx.lyrico.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lonx.lyrico.R
 import com.lonx.lyrico.data.model.ConversionMode
 import com.lonx.lyrico.data.model.LyricFormat
 import com.lonx.lyrico.data.repository.SettingsRepository
 import com.lonx.lyrico.utils.LyricEncoder
+import com.lonx.lyrico.utils.UiMessage
 import com.lonx.lyrics.model.LyricsResult
 import com.lonx.lyrics.model.SearchSource
 import com.lonx.lyrics.model.SongSearchResult
 import com.lonx.lyrics.model.Source
+import com.lonx.lyrics.source.soda.SodaRateLimitException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,7 +33,7 @@ data class LyricsUiState(
     val lyricsResult: LyricsResult? = null,
     val content: String? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: UiMessage? = null
 )
 /**
  * 搜索 UI 状态
@@ -41,7 +44,7 @@ data class SearchUiState(
     val selectedSearchSource: Source? = null,
     val availableSources: List<Source> = emptyList(),
     val isSearching: Boolean = false,
-    val searchError: String? = null,
+    val searchError: UiMessage? = null,
     val lyricsState: LyricsUiState = LyricsUiState(),
     val isInitializing: Boolean = true
 )
@@ -53,7 +56,7 @@ private data class SearchSourceState(
     val keyword: String = "",
     val results: Map<String, List<SongSearchResult>> = emptyMap(),
     val isSearching: Boolean = false,
-    val error: String? = null
+    val error: UiMessage? = null
 )
 
 class SearchViewModel(
@@ -222,7 +225,7 @@ class SearchViewModel(
             if (e is CancellationException) throw e
             searchState.update {
                 it.copy(
-                    error = e.message,
+                    error = e.toUiMessage(),
                     isSearching = false
                 )
             }
@@ -273,14 +276,14 @@ class SearchViewModel(
                     it.copy(
                         lyricsResult = lyricsResult,
                         isLoading = false,
-                        error = if (lyricsResult == null) "暂无歌词" else null
+                        error = if (lyricsResult == null) UiMessage.StringResource(R.string.lyrics_empty) else null
                     )
                 }
 
             } catch (e: Exception) {
                 lyricsState.update {
                     it.copy(
-                        error = e.message,
+                        error = e.toUiMessage(),
                         isLoading = false
                     )
                 }
@@ -388,6 +391,13 @@ class SearchViewModel(
     fun setConversionMode(mode: ConversionMode) {
         viewModelScope.launch {
             settingsRepository.saveConversionMode(mode)
+        }
+    }
+
+    private fun Throwable.toUiMessage(): UiMessage {
+        return when (this) {
+            is SodaRateLimitException -> UiMessage.StringResource(R.string.soda_rate_limited)
+            else -> UiMessage.DynamicString(message ?: javaClass.simpleName)
         }
     }
 }

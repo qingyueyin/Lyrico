@@ -8,6 +8,7 @@
     <string name="search_lyrics_placeholder">搜索歌词…</string>
     <string name="search_cover_placeholder">搜索封面…</string>
     <string name="search_failed">搜索失败: %1$s</string>
+    <string name="soda_rate_limited">汽水音乐请求过于频繁，已被临时限制。请稍后再试，或降低批量匹配并发数。</string>
     <string name="search_no_results">未找到相关结果</string>
     <string name="fetch_lyrics_failed">获取歌词失败，请重试</string>
     <string name="apply_action">应用</string>

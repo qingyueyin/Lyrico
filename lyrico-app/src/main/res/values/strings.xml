@@ -9,6 +9,7 @@
     <string name="search_lyrics_placeholder">Search lyrics…</string>
     <string name="search_cover_placeholder">Search cover…</string>
     <string name="search_failed">Search failed: %1$s</string>
+    <string name="soda_rate_limited">Soda Music is temporarily limiting requests. Please wait a while or lower batch matching concurrency.</string>
     <string name="search_no_results">No results found</string>
     <string name="fetch_lyrics_failed">Failed to fetch lyrics. Please try again.</string>
     <string name="apply_action">Apply</string>

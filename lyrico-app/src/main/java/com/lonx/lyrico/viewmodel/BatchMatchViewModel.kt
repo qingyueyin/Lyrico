@@ -36,6 +36,7 @@ data class BatchMatchUiState(
     val currentFile: String = "",
     val batchTimeMillis: Long = 0,
     val currentTaskId: String? = null,
+    val fileProgressMap: Map<String, Float> = emptyMap(),
 )
 
 class BatchMatchViewModel(
@@ -92,8 +93,16 @@ class BatchMatchViewModel(
             )
         }
         observeJob = viewModelScope.launch {
-            batchTaskRepository.observeTask(taskId).collect { task ->
+            combine(
+                batchTaskRepository.observeTask(taskId),
+                batchTaskRepository.observeItems(taskId)
+            ) { task, items ->
+                task to items
+            }.collect { (task, items) ->
                 if (task == null) return@collect
+                val progressMap = items
+                    .filter { it.status == BatchTaskStatus.RUNNING && it.progress != null }
+                    .associate { it.fileName to it.progress!! }
                 _uiState.update {
                     it.copy(
                         batchProgress = task.current to task.total,
@@ -101,7 +110,8 @@ class BatchMatchViewModel(
                         failureCount = task.failureCount,
                         skippedCount = task.skippedCount,
                         currentFile = task.currentFile ?: "",
-                        isRunning = task.status == BatchTaskStatus.RUNNING || task.status == BatchTaskStatus.QUEUED
+                        isRunning = task.status == BatchTaskStatus.RUNNING || task.status == BatchTaskStatus.QUEUED,
+                        fileProgressMap = progressMap
                     )
                 }
                 if (task.status == BatchTaskStatus.SUCCEEDED ||
@@ -111,7 +121,13 @@ class BatchMatchViewModel(
                     val duration = if (task.startedAt != null && task.finishedAt != null) {
                         task.finishedAt - task.startedAt
                     } else 0L
-                    _uiState.update { it.copy(isRunning = false, batchTimeMillis = duration) }
+                    _uiState.update {
+                        it.copy(
+                            isRunning = false,
+                            batchTimeMillis = duration,
+                            fileProgressMap = emptyMap()
+                        )
+                    }
                     observeJob?.cancel()
                 }
             }
@@ -148,7 +164,8 @@ class BatchMatchViewModel(
                 failureCount = 0,
                 skippedCount = 0,
                 batchProgress = 0 to 0,
-                batchTimeMillis = 0
+                batchTimeMillis = 0,
+                fileProgressMap = emptyMap()
             )
         }
 
@@ -196,7 +213,8 @@ class BatchMatchViewModel(
                 batchProgress = null,
                 currentFile = "",
                 isRunning = false,
-                batchTimeMillis = 0
+                batchTimeMillis = 0,
+                fileProgressMap = emptyMap()
             )
         }
     }
@@ -206,7 +224,8 @@ class BatchMatchViewModel(
                 batchProgress = null,
                 currentFile = "",
                 isRunning = false,
-                batchTimeMillis = 0
+                batchTimeMillis = 0,
+                fileProgressMap = emptyMap()
             )
         }
     }
