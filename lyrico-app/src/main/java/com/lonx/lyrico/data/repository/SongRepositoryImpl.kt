@@ -555,6 +555,7 @@ class SongRepositoryImpl(
                 song.copy(
                     title = tag.title ?: song.title,
                     artist = tag.artist ?: song.artist,
+                    albumArtist = tag.albumArtist ?: song.albumArtist,
                     lyrics = tag.lyrics ?: song.lyrics,
                     date = tag.date ?: song.date,
                     language = tag.language ?: song.language,
@@ -603,6 +604,7 @@ class SongRepositoryImpl(
                 fileSize = songFile.fileSize,
                 fileExtension = songFile.fileName.substringAfterLast(".").uppercase(),
                 artist = audioData.artist,
+                albumArtist = audioData.albumArtist,
                 album = audioData.album,
                 genre = audioData.genre,
                 trackerNumber = audioData.trackNumber,

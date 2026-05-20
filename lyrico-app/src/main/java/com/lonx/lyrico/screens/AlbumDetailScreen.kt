@@ -81,7 +81,10 @@ fun AlbumDetailScreen(
     val album by viewModel.album.collectAsStateWithLifecycle()
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val albumName = album?.name.orEmpty()
-    val albumArtist = album?.albumArtist
+    val albumArtist = album?.albumArtist?.takeIf { it.isNotBlank() }
+        ?: songs.firstNotNullOfOrNull { song ->
+            song.albumArtist?.trim()?.takeIf { it.isNotBlank() }
+        }
     val isSelectionMode by selectionViewModel.isSelectionMode.collectAsStateWithLifecycle()
     val selectedSongUris by selectionViewModel.selectedSongUris.collectAsStateWithLifecycle()
     val topAppBarScrollBehavior = MiuixScrollBehavior()

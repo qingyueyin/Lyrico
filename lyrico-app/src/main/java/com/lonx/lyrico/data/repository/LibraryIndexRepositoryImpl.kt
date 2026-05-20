@@ -263,6 +263,6 @@ class LibraryIndexRepositoryImpl(
     }
 
     private companion object {
-        const val LIBRARY_INDEX_VERSION = 2
+        const val LIBRARY_INDEX_VERSION = 3
     }
 }
