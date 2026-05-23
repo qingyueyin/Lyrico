@@ -1,4 +1,4 @@
-# 3. Manifest 字段参考
+# Manifest 字段参考
 
 `manifest.json` 是插件的核心声明文件，定义了插件的元数据、能力、依赖和配置项。
 

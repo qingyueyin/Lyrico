@@ -1,4 +1,4 @@
-# 4. 宿主 API 参考
+# 宿主 API 参考
 
 插件通过 `globalThis.Platform` 对象访问宿主暴露的原生能力。该对象在 JS 运行时初始化时由 bootstrap 脚本注入。
 
@@ -23,7 +23,7 @@ globalThis.runtime.getInfo();    // 等价于 Platform.runtime.getInfo()
 
 ---
 
-## 1. Platform.app — 应用信息
+## Platform.app — 应用信息
 
 ### `app.getInfo()`
 
@@ -67,7 +67,7 @@ var ua = Platform.app.getUserAgent();  // "Lyrico/0.0.0"
 
 ---
 
-## 2. Platform.runtime — 运行时信息
+## Platform.runtime — 运行时信息
 
 ### `runtime.getInfo()`
 
@@ -102,7 +102,7 @@ if (rt.pluginApiVersion !== 1) {
 
 ---
 
-## 3. Platform.crypto — 加密
+## Platform.crypto — 加密
 
 ### `crypto.md5(text)`
 
@@ -160,7 +160,7 @@ var plain = Platform.crypto.aesEcbPkcs5DecryptBase64ToText(encryptedBase64, "mys
 
 ---
 
-## 4. Platform.base64 — Base64 编码
+## Platform.base64 — Base64 编码
 
 ### `base64.encodeText(text)`
 
@@ -207,7 +207,7 @@ var b64 = Platform.base64.encodeBytes([1, 2, 3, 4]);
 
 ---
 
-## 5. Platform.bytes — 字节运算
+## Platform.bytes — 字节运算
 
 ### `bytes.xor(bytes, key)`
 
@@ -227,7 +227,7 @@ var result = Platform.bytes.xorBase64("base64data", [0x01, 0x02, 0x03]);
 
 ---
 
-## 6. Platform.compression — 压缩
+## Platform.compression — 压缩
 
 ### `compression.inflateBytesToText(bytes)`
 
@@ -247,7 +247,7 @@ var uncompressed = Platform.compression.inflateBase64ToText(compressedBase64);
 
 ---
 
-## 7. Platform.http — HTTP 请求
+## Platform.http — HTTP 请求
 
 HTTP 模块提供**旧 API**（仅返回 body）和**新 API**（返回完整响应对象）两套接口。
 
@@ -413,7 +413,7 @@ var responseBytes = Platform.base64.decodeBytes(res.bodyBase64);
 
 ---
 
-## 8. Platform.log — 日志
+## Platform.log — 日志
 
 日志输出到 Android Logcat，tag 最多截取 48 字符。
 

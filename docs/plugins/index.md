@@ -4,13 +4,13 @@
 
 | 文档 | 说明 |
 |------|------|
-| [1. 插件系统概述](./overview.md) | 系统架构、完整流程、生命周期、宿主能力 |
-| [2. 插件组成](./composition.md) | 文件结构、入口文件、include 包含机制、限制说明 |
-| [3. Manifest 字段参考](./manifest.md) | 所有字段的完整参考、可选值、填写限制 |
-| [4. 宿主 API 参考](./host-api.md) | Platform.* 所有 27 个 API 的完整文档 |
-| [5. 插件函数参考](./plugin-functions.md) | searchSongs、getLyrics、searchCovers 接口定义 |
-| [6. 配置与元数据](./config-metadata.md) | 用户配置、配置依赖、元数据写入 |
-| [7. 完整示例](./examples.md) | 从零构建一个可运行的插件 |
+| [插件系统概述](./overview.md) | 系统架构、完整流程、生命周期、宿主能力 |
+| [插件组成](./composition.md) | 文件结构、入口文件、include 包含机制、限制说明 |
+| [Manifest 字段参考](./manifest.md) | 所有字段的完整参考、可选值、填写限制 |
+| [宿主 API 参考](./host-api.md) | Platform.* 所有 27 个 API 的完整文档 |
+| [插件函数参考](./plugin-functions.md) | searchSongs、getLyrics、searchCovers 接口定义 |
+| [配置与元数据](./config-metadata.md) | 用户配置、配置依赖、元数据写入 |
+| [完整示例](./examples.md) | 从零构建一个可运行的插件 |
 
 ## 快速开始
 

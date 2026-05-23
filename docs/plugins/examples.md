@@ -1,4 +1,4 @@
-# 7. 完整示例
+# 完整示例
 
 本文档从零开始构建一个完整的 Lyrico 插件。假设插件名为 **"MusicLib"**，对接一个虚构的 `https://api.musiclib.example.com` 音乐 API。
 
@@ -23,7 +23,7 @@ com.musiclib.source/
 
 ---
 
-## 1. manifest.json
+## manifest.json
 
 ```json
 {
@@ -165,7 +165,7 @@ com.musiclib.source/
 
 ---
 
-## 2. lib/01_api.js — API 通信层
+## lib/01_api.js — API 通信层
 
 ```javascript
 var MusicLib = MusicLib || {};
@@ -242,7 +242,7 @@ MusicLib.buildCoverUrl = function (coverId, config) {
 
 ---
 
-## 3. lib/02_lyrics.js — 歌词解析
+## lib/02_lyrics.js — 歌词解析
 
 ```javascript
 MusicLib.parsePlainLrc = function (lrcText) {
@@ -311,7 +311,7 @@ MusicLib.mapLyrics = function (apiResponse) {
 
 ---
 
-## 4. source.js — 入口文件
+## source.js — 入口文件
 
 ```javascript
 function formatDate(timestamp) {
@@ -429,7 +429,7 @@ function searchCovers(request) {
 
 ---
 
-## 5. 打包
+## 打包
 
 将上述文件按目录结构组织后，打包为 ZIP：
 
