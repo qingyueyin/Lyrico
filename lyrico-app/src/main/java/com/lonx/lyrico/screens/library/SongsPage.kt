@@ -50,7 +50,6 @@ import com.lonx.lyrico.screens.SECTIONS_ASC
 import com.lonx.lyrico.screens.SECTIONS_DESC
 import com.lonx.lyrico.screens.TopBarState
 import com.lonx.lyrico.ui.components.bar.AlphabetSideBar
-import com.lonx.lyrico.ui.components.bar.SongBatchSelectionActions
 import com.lonx.lyrico.ui.components.bar.SongSelectionTopAppBar
 import com.lonx.lyrico.ui.components.bar.findScrollIndex
 import com.lonx.lyrico.ui.components.fab.ScrollToTopButton
@@ -125,7 +124,6 @@ fun SongsPage(
             showScrollTopButton && listState.firstVisibleItemIndex > 0
         }
     }
-    var isFabMenuExpanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val layoutDirection = LocalLayoutDirection.current
@@ -175,12 +173,8 @@ fun SongsPage(
         animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
         label = "backToTopPadding"
     )
-    BackHandler(enabled = isSelectionMode || isFabMenuExpanded) {
-        if (isFabMenuExpanded) {
-            isFabMenuExpanded = false
-        } else if (isSelectionMode) {
-            viewModel.exitSelectionMode()
-        }
+    BackHandler(enabled = isSelectionMode) {
+        viewModel.exitSelectionMode()
     }
     val topAppBarScrollBehavior = MiuixScrollBehavior()
     val refreshTexts = listOf(
@@ -499,18 +493,6 @@ fun SongsPage(
                     listState.animateScrollToItem(0)
                 }
             }
-        )
-
-        SongBatchSelectionActions(
-            navigator = navigator,
-            songs = songs,
-            isSelectionMode = isSelectionMode,
-            expanded = isFabMenuExpanded,
-            selectedSongUris = selectedSongUris,
-            onExpandedChange = { isFabMenuExpanded = it },
-            onSetSelectionUris = viewModel::setSelectionUris,
-            onBatchDelete = viewModel::batchDelete,
-            onBatchShare = viewModel::batchShare
         )
     }
 }

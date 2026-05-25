@@ -281,6 +281,7 @@ fun BatchEditScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(top = paddingValues.calculateTopPadding())
                 ) {
                     Card(
                         modifier = Modifier
@@ -1524,79 +1525,68 @@ private fun BatchEditPreviewTab(
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 3.dp)
                         .animateContentSize()
-                        .clickable {
+                ) {
+                    BasicComponent(
+                        onClick = {
                             expandedPreviewKey =
                                 if (expandedPreviewKey == preview.songUri) null else preview.songUri
                         }
-                ) {
-                    BatchEditPreviewItem(
-                        preview = preview,
-                        expanded = expandedPreviewKey == preview.songUri
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BatchEditPreviewItem(
-    preview: BatchEditPreview,
-    expanded: Boolean
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-    ) {
-        Text(
-            text = preview.fileName,
-            style = MiuixTheme.textStyles.body1,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Text(
-            text = stringResource(R.string.batch_edit_preview_change_count, preview.changes.size),
-            style = MiuixTheme.textStyles.footnote1,
-            color = MiuixTheme.colorScheme.onSurfaceVariantActions
-        )
-
-        AnimatedVisibility(visible = expanded) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                preview.changes.forEach { change ->
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    ) {
                         Text(
-                            text = change.labelResId?.let { stringResource(it) } ?: change.customLabel.orEmpty(),
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.primary
+                            text = preview.fileName,
+                            style = MiuixTheme.textStyles.body1,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = stringResource(
-                                R.string.batch_edit_preview_old_value,
-                                displayBatchEditPreviewValue(change.oldValue)
-                            ),
+                            text = stringResource(R.string.batch_edit_preview_change_count, preview.changes.size),
                             style = MiuixTheme.textStyles.footnote1,
                             color = MiuixTheme.colorScheme.onSurfaceVariantActions
                         )
-                        Text(
-                            text = stringResource(
-                                R.string.batch_edit_preview_new_value,
-                                displayBatchEditPreviewValue(change.newValue)
-                            ),
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantActions
-                        )
+
+                        AnimatedVisibility(visible = expandedPreviewKey == preview.songUri) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                preview.changes.forEach { change ->
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = change.labelResId?.let { stringResource(it) } ?: change.customLabel.orEmpty(),
+                                            style = MiuixTheme.textStyles.body2,
+                                            color = MiuixTheme.colorScheme.primary
+                                        )
+                                        Text(
+                                            text = stringResource(
+                                                R.string.batch_edit_preview_old_value,
+                                                displayBatchEditPreviewValue(change.oldValue)
+                                            ),
+                                            style = MiuixTheme.textStyles.footnote1,
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantActions
+                                        )
+                                        Text(
+                                            text = stringResource(
+                                                R.string.batch_edit_preview_new_value,
+                                                displayBatchEditPreviewValue(change.newValue)
+                                            ),
+                                            style = MiuixTheme.textStyles.footnote1,
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantActions
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+
             }
         }
     }
 }
+
+
 
 @Composable
 private fun displayBatchEditPreviewValue(value: String): String {

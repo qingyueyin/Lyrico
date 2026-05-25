@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.ui.Modifier
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -120,6 +121,7 @@ fun BoxScope.SongBatchSelectionActions(
     isSelectionMode: Boolean,
     expanded: Boolean,
     selectedSongUris: Set<String>,
+    modifier: Modifier = Modifier,
     onExpandedChange: (Boolean) -> Unit,
     onSetSelectionUris: () -> Boolean,
     onBatchDelete: (List<SongEntity>) -> Unit,
@@ -265,6 +267,7 @@ fun BoxScope.SongBatchSelectionActions(
         visible = isSelectionMode,
         expanded = expanded,
         enabled = selectedSongUris.isNotEmpty(),
+        modifier = modifier,
         style = ExpandableFabMenuStyle.default().copy(
             mainIcon = MiuixIcons.Add
         ),
