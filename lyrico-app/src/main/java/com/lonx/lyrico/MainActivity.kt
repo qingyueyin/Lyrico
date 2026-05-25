@@ -57,6 +57,17 @@ open class MainActivity : ComponentActivity() {
             }
         }
 
+    private val audioPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (!isGranted) {
+                Toast.makeText(
+                    this,
+                    "音频访问权限未授予，将无法扫描和管理本地音频文件",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+
     private val externalAudioPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             val uri = pendingExternalUri
@@ -89,6 +100,7 @@ open class MainActivity : ComponentActivity() {
             songListViewModel.checkForUpdate()
         }
         requestNotificationPermissionIfNeeded()
+        requestAudioPermissionIfNeeded()
         lifecycleScope.launch {
             libraryIndexRepository.ensureIndexesCurrent()
         }
@@ -258,6 +270,15 @@ open class MainActivity : ComponentActivity() {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
+
+    private fun requestAudioPermissionIfNeeded() {
+        val permission = externalAudioReadPermission() ?: return
+        
+        if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+            audioPermissionLauncher.launch(permission)
+        }
+    }
+
     private fun openBrowser(context: Context, url: String) {
         val intent = Intent(Intent.ACTION_VIEW, url.toUri())
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

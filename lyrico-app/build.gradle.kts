@@ -70,13 +70,10 @@ dependencies {
     // Project Modules
     implementation(project(":lyrico-audiotag"))
 
-
     // network
     implementation(libs.okhttp)
-    implementation(libs.retrofit)
     // JSON 解析
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.retrofit2.kotlinx.serialization.converter)
     // Compose & UI
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
