@@ -3,19 +3,28 @@ package com.lonx.lyrico.screens.library
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -37,6 +46,7 @@ import com.ramcosta.composedestinations.generated.destinations.LocalSearchDestin
 import com.ramcosta.composedestinations.generated.destinations.SettingsDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import my.nanihadesuka.compose.LazyColumnScrollbar
+import my.nanihadesuka.compose.LazyVerticalGridScrollbar
 import my.nanihadesuka.compose.ScrollbarSelectionMode
 import my.nanihadesuka.compose.ScrollbarSettings
 import org.koin.androidx.compose.koinViewModel
@@ -70,25 +80,30 @@ fun ArtistsPage(
 ) {
     val viewModel: ArtistLibraryViewModel = koinViewModel()
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
-
+    var artistGridColumns by remember {
+        mutableIntStateOf(1)
+    }
     val artists by viewModel.artists.collectAsStateWithLifecycle()
     val sortInfo by viewModel.sortInfo.collectAsStateWithLifecycle()
     val topAppBarScrollBehavior = MiuixScrollBehavior()
-    val listState = rememberLazyListState()
-    val alphabetScrollController = rememberAlphabetSideBarScrollController(listState)
+    val gridState = rememberLazyGridState()
+    val alphabetScrollController = rememberAlphabetSideBarScrollController(gridState)
 
     val sections = remember(sortInfo.order) {
         if (sortInfo.order == SortOrder.ASC) SECTIONS_ASC else SECTIONS_DESC
     }
-    val sectionIndexMap = remember(artists, sortInfo) {
+    val sectionIndexMap = remember(artists, sortInfo, artistGridColumns) {
         val map = mutableMapOf<String, Int>()
+
         if (sortInfo.sortBy.supportsIndex) {
             artists.forEachIndexed { index, artist ->
                 if (!map.containsKey(artist.groupKey)) {
-                    map[artist.groupKey] = index
+                    val rowStartIndex = index - index % artistGridColumns
+                    map[artist.groupKey] = rowStartIndex
                 }
             }
         }
+
         map
     }
     val enableIndex = artists.isNotEmpty() && sortInfo.sortBy.supportsIndex
@@ -98,128 +113,151 @@ fun ArtistsPage(
         stringResource(R.string.refreshing),
         stringResource(R.string.refresh_success)
     )
-    Box(modifier = modifier.fillMaxSize()) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            topBar = {
-                SmallTopAppBar(
-                    title = stringResource(R.string.artist_list_title, artists.size),
-                    scrollBehavior = topAppBarScrollBehavior,
-                    navigationIcon = {
-                        IconButton(onClick = { navigator.navigate(SettingsDestination()) }) {
-                            Icon(
-                                imageVector = MiuixIcons.Settings,
-                                contentDescription = null
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { navigator.navigate(LocalSearchDestination) }) {
-                            Icon(
-                                imageVector = MiuixIcons.Search,
-                                contentDescription = stringResource(R.string.cd_search)
-                            )
-                        }
-                        OverlayIconDropdownMenu(
-                            entries = listOf(
-                                artistSortDropdownEntry(sortInfo, viewModel::onSortChange),
-                            )
-                        ) {
-                            Icon(
-                                imageVector = MiuixIcons.Sort,
-                                contentDescription = stringResource(R.string.cd_sort)
-                            )
-                        }
+    Scaffold(
+        topBar = {
+            SmallTopAppBar(
+                title = stringResource(R.string.artist_list_title, artists.size),
+                scrollBehavior = topAppBarScrollBehavior,
+                navigationIcon = {
+                    IconButton(onClick = { navigator.navigate(SettingsDestination()) }) {
+                        Icon(
+                            imageVector = MiuixIcons.Settings,
+                            contentDescription = null
+                        )
                     }
-                )
-            }
-        ) { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .padding(scaffoldTopHorizontalPadding(paddingValues))
-                    .fillMaxSize()
-            ) {
-                if (artists.isEmpty()) {
-                    LibraryEmptyState(
-                        title = stringResource(R.string.empty_artists_title),
-                        summary = stringResource(R.string.empty_library_index_summary),
-                        modifier = Modifier.align(Alignment.Center),
-                        action = {
-                            TextButton(
-                                text = stringResource(R.string.refresh),
-                                onClick = { viewModel.refreshSongs() },
-                                colors = MiuixButtonDefaults.textButtonColorsPrimary()
-                            )
-                        }
-                    )
-                } else {
-                    PullToRefresh(
-                        isRefreshing = scanState.isScanning,
-                        onRefresh = { viewModel.refreshSongs() },
-                        modifier = Modifier.fillMaxSize(),
-                        topAppBarScrollBehavior = topAppBarScrollBehavior,
-                        refreshTexts = refreshTexts
+                },
+                actions = {
+                    IconButton(onClick = { navigator.navigate(LocalSearchDestination) }) {
+                        Icon(
+                            imageVector = MiuixIcons.Search,
+                            contentDescription = stringResource(R.string.cd_search)
+                        )
+                    }
+                    OverlayIconDropdownMenu(
+                        entries = listOf(
+                            artistSortDropdownEntry(sortInfo, viewModel::onSortChange),
+                        )
                     ) {
-                        LazyColumnScrollbar(
-                            state = listState,
-                            settings = ScrollbarSettings.Default.copy(
-                                enabled = !enableIndex,
-                                alwaysShowScrollbar = !enableIndex,
-                                selectionMode = ScrollbarSelectionMode.Full,
-                                thumbUnselectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                                thumbSelectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions
-                            )
-                        ) {
-                            LazyColumn(
-                                modifier = Modifier
-                                    .scrollEndHaptic()
-                                    .overScrollVertical()
-                                    .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
-                                    .fillMaxHeight(),
-                                state = listState,
-                                overscrollEffect = null,
-                                contentPadding = PaddingValues()
-                            ) {
-                                items(
-                                    items = artists,
-                                    key = { it.id }
-                                ) { artist ->
-                                    ArtistSongItem(
-                                        name = artist.name,
-                                        subtitle = stringResource(
-                                            R.string.album_song_count,
-                                            artist.albumCount,
-                                            artist.songCount
-                                        ),
-                                        coverUri = artist.coverSongUri,
-                                        coverLastModified = artist.coverSongLastModified,
-                                        onClick = {
-                                            navigator.navigate(ArtistDetailDestination(artistId = artist.id))
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    if (enableIndex) {
-                        AlphabetSideBar(
-                            sections = sections,
-                            sectionIndexMap = sectionIndexMap,
-                            order = sortInfo.order,
-                            scrollController = alphabetScrollController,
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .fillMaxHeight()
-                                .padding(
-                                    top = 24.dp,
-                                    bottom = 24.dp
-                                )
+                        Icon(
+                            imageVector = MiuixIcons.Sort,
+                            contentDescription = stringResource(R.string.cd_sort)
                         )
                     }
                 }
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .padding(scaffoldTopHorizontalPadding(paddingValues))
+                .fillMaxSize()
+        ) {
+            if (artists.isEmpty()) {
+                LibraryEmptyState(
+                    title = stringResource(R.string.empty_artists_title),
+                    summary = stringResource(R.string.empty_library_index_summary),
+                    modifier = Modifier.align(Alignment.Center),
+                    action = {
+                        TextButton(
+                            text = stringResource(R.string.refresh),
+                            onClick = { viewModel.refreshSongs() },
+                            colors = MiuixButtonDefaults.textButtonColorsPrimary()
+                        )
+                    }
+                )
+            } else {
+                PullToRefresh(
+                    isRefreshing = scanState.isScanning,
+                    onRefresh = { viewModel.refreshSongs() },
+                    modifier = Modifier.fillMaxSize(),
+                    topAppBarScrollBehavior = topAppBarScrollBehavior,
+                    refreshTexts = refreshTexts
+                ) {
+                    LazyVerticalGridScrollbar(
+                        state = gridState,
+                        settings = ScrollbarSettings.Default.copy(
+                            enabled = !enableIndex,
+                            alwaysShowScrollbar = !enableIndex,
+                            selectionMode = ScrollbarSelectionMode.Full,
+                            thumbUnselectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                            thumbSelectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions
+                        )
+                    ) {
+                        BoxWithConstraints(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            val targetColumns = if (maxWidth >= 600.dp) 2 else 1
+
+                            LaunchedEffect(targetColumns) {
+                                artistGridColumns = targetColumns
+                            }
+
+
+                            LazyVerticalGridScrollbar(
+                                state = gridState,
+                                settings = ScrollbarSettings.Default.copy(
+                                    enabled = !enableIndex,
+                                    alwaysShowScrollbar = !enableIndex,
+                                    selectionMode = ScrollbarSelectionMode.Full,
+                                    thumbUnselectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                    thumbSelectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions
+                                )
+                            ) {
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(artistGridColumns),
+                                    modifier = Modifier
+                                        .scrollEndHaptic()
+                                        .overScrollVertical()
+                                        .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
+                                        .fillMaxHeight(),
+                                    state = gridState,
+                                    overscrollEffect = null,
+                                    contentPadding = PaddingValues(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                                ) {
+                                    items(
+                                        items = artists,
+                                        key = { it.id }
+                                    ) { artist ->
+                                        ArtistSongItem(
+                                            name = artist.name,
+                                            subtitle = stringResource(
+                                                R.string.album_song_count,
+                                                artist.albumCount,
+                                                artist.songCount
+                                            ),
+                                            coverUri = artist.coverSongUri,
+                                            coverLastModified = artist.coverSongLastModified,
+                                            onClick = {
+                                                navigator.navigate(ArtistDetailDestination(artistId = artist.id))
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+
+                        }
+                    }
+                }
+                if (enableIndex) {
+                    AlphabetSideBar(
+                        sections = sections,
+                        sectionIndexMap = sectionIndexMap,
+                        order = sortInfo.order,
+                        scrollController = alphabetScrollController,
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight()
+                            .padding(
+                                top = 8.dp,
+                                bottom = 8.dp
+                            )
+                    )
+                }
             }
         }
-
     }
 }
 

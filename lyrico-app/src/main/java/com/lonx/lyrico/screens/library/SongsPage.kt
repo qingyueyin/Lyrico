@@ -162,292 +162,289 @@ fun SongsPage(
         stringResource(R.string.refreshing),
         stringResource(R.string.refresh_success)
     )
-    Box(modifier = modifier.fillMaxSize()) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            topBar = {
-                val topBarState = when {
-                    isSelectionMode -> TopBarState.Selection
-                    else -> TopBarState.Default
-                }
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            val topBarState = when {
+                isSelectionMode -> TopBarState.Selection
+                else -> TopBarState.Default
+            }
 
-                AnimatedContent(
-                    targetState = topBarState,
-                    label = "TopBarAnimation",
-                    transitionSpec = {
-                        // 定义过渡动画：淡入淡出 + 轻微的垂直滑动 + 尺寸自适应平滑过渡
-                        val animationDuration = 300
-                        val enter = fadeIn(tween(animationDuration)) +
-                                slideInVertically(
-                                    animationSpec = tween(
-                                        animationDuration,
-                                        easing = FastOutSlowInEasing
-                                    ),
-                                    initialOffsetY = { -it / 3 } // 从上方 1/3 处滑入
-                                )
-                        val exit = fadeOut(tween(animationDuration)) +
-                                slideOutVertically(
-                                    animationSpec = tween(
-                                        animationDuration,
-                                        easing = FastOutSlowInEasing
-                                    ),
-                                    targetOffsetY = { -it / 3 } // 向上方 1/3 处滑出
-                                )
+            AnimatedContent(
+                targetState = topBarState,
+                label = "TopBarAnimation",
+                transitionSpec = {
+                    // 定义过渡动画：淡入淡出 + 轻微的垂直滑动 + 尺寸自适应平滑过渡
+                    val animationDuration = 300
+                    val enter = fadeIn(tween(animationDuration)) +
+                            slideInVertically(
+                                animationSpec = tween(
+                                    animationDuration,
+                                    easing = FastOutSlowInEasing
+                                ),
+                                initialOffsetY = { -it / 3 } // 从上方 1/3 处滑入
+                            )
+                    val exit = fadeOut(tween(animationDuration)) +
+                            slideOutVertically(
+                                animationSpec = tween(
+                                    animationDuration,
+                                    easing = FastOutSlowInEasing
+                                ),
+                                targetOffsetY = { -it / 3 } // 向上方 1/3 处滑出
+                            )
 
-                        (enter togetherWith exit).using(
-                            // SizeTransform 保证了如果搜索栏和默认导航栏高度不同时，高度变化也是平滑的
-                            SizeTransform(clip = false)
+                    (enter togetherWith exit).using(
+                        // SizeTransform 保证了如果搜索栏和默认导航栏高度不同时，高度变化也是平滑的
+                        SizeTransform(clip = false)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { state ->
+                when (state) {
+                    TopBarState.Selection -> {
+                        SongSelectionTopAppBar(
+                            songs = songs,
+                            selectedSongUris = selectedSongUris,
+                            scrollBehavior = topAppBarScrollBehavior,
+                            onSelectAll = viewModel::selectAll,
+                            onDeselectAll = viewModel::deselectAll,
+                            onClose = viewModel::exitSelectionMode
                         )
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { state ->
-                    when (state) {
-                        TopBarState.Selection -> {
-                            SongSelectionTopAppBar(
-                                songs = songs,
-                                selectedSongUris = selectedSongUris,
-                                scrollBehavior = topAppBarScrollBehavior,
-                                onSelectAll = viewModel::selectAll,
-                                onDeselectAll = viewModel::deselectAll,
-                                onClose = viewModel::exitSelectionMode
+                    }
+
+                    TopBarState.Default -> {
+                        SmallTopAppBar(
+                            title = stringResource(R.string.song_list_title, songs.size),
+                            scrollBehavior = topAppBarScrollBehavior,
+                            navigationIcon = {
+                                IconButton(
+                                    onClick = { navigator.navigate(SettingsDestination()) }
+                                ) {
+                                    Icon(
+                                        imageVector = MiuixIcons.Settings,
+                                        contentDescription = null
+                                    )
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = {
+                                    navigator.navigate(LocalSearchDestination)
+                                }) {
+                                    Icon(
+                                        imageVector = MiuixIcons.Search,
+                                        contentDescription = stringResource(R.string.cd_search)
+                                    )
+                                }
+                                val sortTypes = SortBy.entries.toList()
+                                val sortEntries = DropdownEntry(
+                                    items = sortTypes.mapIndexed { _, sortBy ->
+                                        val isSelected = sortInfo.sortBy == sortBy
+                                        DropdownItem(
+                                            text = stringResource(sortBy.labelRes),
+                                            selected = isSelected,
+                                            summary = if (isSelected) {
+                                                stringResource(
+                                                    when (sortInfo.order) {
+                                                        SortOrder.ASC -> R.string.sort_ascending
+                                                        SortOrder.DESC -> R.string.sort_descending
+                                                    }
+                                                )
+                                            } else {
+                                                null
+                                            },
+                                            onClick = {
+                                                val newOrder = if (isSelected) {
+                                                    if (sortInfo.order == SortOrder.ASC) SortOrder.DESC else SortOrder.ASC
+                                                } else {
+                                                    SortOrder.ASC
+                                                }
+                                                viewModel.onSortChange(
+                                                    SortInfo(
+                                                        sortBy,
+                                                        newOrder
+                                                    )
+                                                )
+                                            }
+                                        )
+                                    }
+                                )
+                                OverlayIconDropdownMenu(
+                                    entries = listOf(sortEntries),
+                                ) {
+                                    Icon(
+                                        imageVector = MiuixIcons.Sort,
+                                        contentDescription = stringResource(R.string.cd_sort)
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .padding(scaffoldTopHorizontalPadding(paddingValues))
+                .fillMaxSize()
+        ) {
+            if (songs.isEmpty()) {
+                val scanProgress = scanState.progress
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        scanProgress != null -> {
+                            LibraryScanProgressText(progress = scanProgress)
+                        }
+
+                        !hasFolders -> {
+                            SongListEmptyState(
+                                onAddFolder = { folderPickerLauncher.launch(null) }
                             )
                         }
 
-                        TopBarState.Default -> {
-                            SmallTopAppBar(
-                                title = stringResource(R.string.song_list_title, songs.size),
-                                scrollBehavior = topAppBarScrollBehavior,
-                                navigationIcon = {
-                                    IconButton(
-                                        onClick = { navigator.navigate(SettingsDestination()) }
-                                    ) {
-                                        Icon(
-                                            imageVector = MiuixIcons.Settings,
-                                            contentDescription = null
+                        else -> {
+                            LibraryEmptyState(
+                                title = stringResource(R.string.empty_songs_title),
+                                summary = stringResource(R.string.empty_library_index_summary),
+                                action = {
+                                    TextButton(
+                                        text = stringResource(R.string.refresh),
+                                        onClick = { viewModel.refreshSongs() },
+                                        colors = MiuixButtonDefaults.textButtonColorsPrimary()
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            } else {
+                PullToRefresh(
+                    isRefreshing = scanState.isScanning,
+                    onRefresh = { viewModel.refreshSongs() },
+                    modifier = Modifier.fillMaxSize(),
+                    topAppBarScrollBehavior = topAppBarScrollBehavior,
+                    refreshTexts = refreshTexts
+                ) {
+                    LazyColumnScrollbar(
+                        state = listState,
+                        settings = ScrollbarSettings.Default.copy(
+                            enabled = !enableIndex,
+                            alwaysShowScrollbar = !enableIndex,
+                            selectionMode = ScrollbarSelectionMode.Full,
+                            thumbUnselectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                            thumbSelectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                        )
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .scrollEndHaptic()
+                                .overScrollVertical()
+                                .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
+                                .fillMaxHeight()
+                                .dragSelection(
+                                    listState = listState,
+                                    itemCount = songs.size,
+                                    isSelectionMode = isSelectionMode,
+                                    onDragSelectionStart = { index ->
+                                        viewModel.startDragSelection(index, songs)
+                                    },
+                                    onDragSelectionChange = { startIndex, endIndex ->
+                                        viewModel.updateDragSelection(
+                                            startIndex,
+                                            endIndex,
+                                            songs
                                         )
+                                    },
+                                    onDragSelectionEnd = {
+                                        viewModel.endDragSelection()
                                     }
-                                },
-                                actions = {
-                                    IconButton(onClick = {
-                                        navigator.navigate(LocalSearchDestination)
-                                    }) {
-                                        Icon(
-                                            imageVector = MiuixIcons.Search,
-                                            contentDescription = stringResource(R.string.cd_search)
-                                        )
-                                    }
-                                    val sortTypes = SortBy.entries.toList()
-                                    val sortEntries = DropdownEntry(
-                                        items = sortTypes.mapIndexed { _, sortBy ->
-                                            val isSelected = sortInfo.sortBy == sortBy
-                                            DropdownItem(
-                                                text = stringResource(sortBy.labelRes),
-                                                selected = isSelected,
-                                                summary = if (isSelected) {
-                                                    stringResource(
-                                                        when (sortInfo.order) {
-                                                            SortOrder.ASC -> R.string.sort_ascending
-                                                            SortOrder.DESC -> R.string.sort_descending
-                                                        }
-                                                    )
-                                                } else {
-                                                    null
+                                ),
+                            state = listState,
+                            overscrollEffect = null,
+                            contentPadding = PaddingValues()
+                        ) {
+                            items(
+                                items = songs,
+                                key = { song ->
+                                    song.uri.takeIf { it.isNotBlank() && it != "0" }
+                                        ?: "song-${song.id}"
+                                }
+                            ) { song ->
+                                SongListItem(
+                                    song = song,
+                                    modifier = Modifier.animateItem(),
+                                    isSelectionMode = isSelectionMode,
+                                    isSelected = selectedSongUris.contains(song.uri),
+                                    onClick = {
+                                        navigator.navigate(EditMetadataDestination(songFileUri = song.uri))
+                                    },
+                                    onToggleSelection = {
+                                        viewModel.toggleSelection(song.uri)
+                                    },
+                                    trailingContent = {
+                                        Box(modifier = Modifier.padding(end = 8.dp)) {
+                                            SongListItemActions(
+                                                isSelectionMode = isSelectionMode,
+                                                isSelected = selectedSongUris.contains(song.uri),
+                                                onToggleSelection = {
+                                                    viewModel.toggleSelection(song.uri)
                                                 },
-                                                onClick = {
-                                                    val newOrder = if (isSelected) {
-                                                        if (sortInfo.order == SortOrder.ASC) SortOrder.DESC else SortOrder.ASC
-                                                    } else {
-                                                        SortOrder.ASC
-                                                    }
-                                                    viewModel.onSortChange(
-                                                        SortInfo(
-                                                            sortBy,
-                                                            newOrder
-                                                        )
-                                                    )
+                                                onShowMenu = {
+                                                    showMenuSheet = true
+                                                    selectedSong = song
                                                 }
                                             )
                                         }
-                                    )
-                                    OverlayIconDropdownMenu(
-                                        entries = listOf(sortEntries),
-                                    ) {
-                                        Icon(
-                                            imageVector = MiuixIcons.Sort,
-                                            contentDescription = stringResource(R.string.cd_sort)
-                                        )
                                     }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
             }
-        ) { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .padding(scaffoldTopHorizontalPadding(paddingValues))
-                    .fillMaxSize()
-            ) {
-                if (songs.isEmpty()) {
-                    val scanProgress = scanState.progress
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        when {
-                            scanProgress != null -> {
-                                LibraryScanProgressText(progress = scanProgress)
-                            }
-
-                            !hasFolders -> {
-                                SongListEmptyState(
-                                    onAddFolder = { folderPickerLauncher.launch(null) }
-                                )
-                            }
-
-                            else -> {
-                                LibraryEmptyState(
-                                    title = stringResource(R.string.empty_songs_title),
-                                    summary = stringResource(R.string.empty_library_index_summary),
-                                    action = {
-                                        TextButton(
-                                            text = stringResource(R.string.refresh),
-                                            onClick = { viewModel.refreshSongs() },
-                                            colors = MiuixButtonDefaults.textButtonColorsPrimary()
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    PullToRefresh(
-                        isRefreshing = scanState.isScanning,
-                        onRefresh = { viewModel.refreshSongs() },
-                        modifier = Modifier.fillMaxSize(),
-                        topAppBarScrollBehavior = topAppBarScrollBehavior,
-                        refreshTexts = refreshTexts
-                    ) {
-                        LazyColumnScrollbar(
-                            state = listState,
-                            settings = ScrollbarSettings.Default.copy(
-                                enabled = !enableIndex,
-                                alwaysShowScrollbar = !enableIndex,
-                                selectionMode = ScrollbarSelectionMode.Full,
-                                thumbUnselectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                                thumbSelectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                            )
-                        ) {
-                            LazyColumn(
-                                modifier = Modifier
-                                    .scrollEndHaptic()
-                                    .overScrollVertical()
-                                    .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
-                                    .fillMaxHeight()
-                                    .dragSelection(
-                                        listState = listState,
-                                        itemCount = songs.size,
-                                        isSelectionMode = isSelectionMode,
-                                        onDragSelectionStart = { index ->
-                                            viewModel.startDragSelection(index, songs)
-                                        },
-                                        onDragSelectionChange = { startIndex, endIndex ->
-                                            viewModel.updateDragSelection(
-                                                startIndex,
-                                                endIndex,
-                                                songs
-                                            )
-                                        },
-                                        onDragSelectionEnd = {
-                                            viewModel.endDragSelection()
-                                        }
-                                    ),
-                                state = listState,
-                                overscrollEffect = null,
-                                contentPadding = PaddingValues()
-                            ) {
-                                items(
-                                    items = songs,
-                                    key = { song ->
-                                        song.uri.takeIf { it.isNotBlank() && it != "0" }
-                                            ?: "song-${song.id}"
-                                    }
-                                ) { song ->
-                                    SongListItem(
-                                        song = song,
-                                        modifier = Modifier.animateItem(),
-                                        isSelectionMode = isSelectionMode,
-                                        isSelected = selectedSongUris.contains(song.uri),
-                                        onClick = {
-                                            navigator.navigate(EditMetadataDestination(songFileUri = song.uri))
-                                        },
-                                        onToggleSelection = {
-                                            viewModel.toggleSelection(song.uri)
-                                        },
-                                        trailingContent = {
-                                            Box(modifier = Modifier.padding(end = 8.dp)) {
-                                                SongListItemActions(
-                                                    isSelectionMode = isSelectionMode,
-                                                    isSelected = selectedSongUris.contains(song.uri),
-                                                    onToggleSelection = {
-                                                        viewModel.toggleSelection(song.uri)
-                                                    },
-                                                    onShowMenu = {
-                                                        showMenuSheet = true
-                                                        selectedSong = song
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                if (enableIndex && songs.isNotEmpty()) {
-                    AlphabetSideBar(
-                        sections = sections,
-                        sectionIndexMap = sectionIndexMap,
-                        order = sortInfo.order,
-                        scrollController = alphabetScrollController,
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .fillMaxHeight()
-                            .padding(
-                                top = 24.dp,
-                                bottom = 24.dp
-                            )
-                    )
-                }
-
-                SongActionSheets(
-                    selectedSong = selectedSong,
-                    showMenuSheet = showMenuSheet,
-                    showDetailSheet = showDetailSheet,
-                    showDeleteDialog = showDeleteDialog,
-                    showRenameDialog = showRenameDialog,
-                    onDismissMenu = { showMenuSheet = false },
-                    onDismissMenuFinished = { selectedSong = null },
-                    onDismissDetail = { showDetailSheet = false },
-                    onDismissDelete = { showDeleteDialog = false },
-                    onDismissRename = { showRenameDialog = false },
-                    onShowDetail = { showDetailSheet = true },
-                    onShowDelete = { showDeleteDialog = true },
-                    onShowRename = { showRenameDialog = true },
-                    onPlay = { song ->
-                        viewModel.play(context, song)
-                    },
-                    onDelete = { song ->
-                        viewModel.delete(song)
-                    },
-                    onRename = { song, newFileName ->
-                        viewModel.renameSong(song, newFileName)
-                    }
+            if (enableIndex && songs.isNotEmpty()) {
+                AlphabetSideBar(
+                    sections = sections,
+                    sectionIndexMap = sectionIndexMap,
+                    order = sortInfo.order,
+                    scrollController = alphabetScrollController,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxHeight()
+                        .padding(
+                            top = 16.dp,
+                            bottom = 16.dp
+                        )
                 )
             }
-        }
 
+            SongActionSheets(
+                selectedSong = selectedSong,
+                showMenuSheet = showMenuSheet,
+                showDetailSheet = showDetailSheet,
+                showDeleteDialog = showDeleteDialog,
+                showRenameDialog = showRenameDialog,
+                onDismissMenu = { showMenuSheet = false },
+                onDismissMenuFinished = { selectedSong = null },
+                onDismissDetail = { showDetailSheet = false },
+                onDismissDelete = { showDeleteDialog = false },
+                onDismissRename = { showRenameDialog = false },
+                onShowDetail = { showDetailSheet = true },
+                onShowDelete = { showDeleteDialog = true },
+                onShowRename = { showRenameDialog = true },
+                onPlay = { song ->
+                    viewModel.play(context, song)
+                },
+                onDelete = { song ->
+                    viewModel.delete(song)
+                },
+                onRename = { song, newFileName ->
+                    viewModel.renameSong(song, newFileName)
+                }
+            )
+        }
     }
 }

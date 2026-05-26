@@ -81,26 +81,19 @@ fun AlbumsPage(
     val topAppBarScrollBehavior = MiuixScrollBehavior()
     val gridState = rememberLazyGridState()
     val alphabetScrollController = rememberAlphabetSideBarScrollController(gridState)
-    val scope = rememberCoroutineScope()
-    val showFab by remember {
-        derivedStateOf {
-            gridState.firstVisibleItemIndex > 0
-        }
-    }
-    val topPadding by animateDpAsState(
-        targetValue = TopAppBarDefaults.SmallTopAppBarCenterHeight + 12.dp,
-        animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
-        label = "backToTopPadding"
-    )
+
     val sections = remember(sortInfo.order) {
         if (sortInfo.order == SortOrder.ASC) SECTIONS_ASC else SECTIONS_DESC
     }
-    val sectionIndexMap = remember(albums, sortInfo) {
+    val sectionIndexMap = remember(albums, sortInfo, albumGridColumns) {
         val map = mutableMapOf<String, Int>()
+        val columns = albumGridColumns.coerceAtLeast(1)
+
         if (sortInfo.sortBy.supportsIndex) {
             albums.forEachIndexed { index, album ->
                 if (!map.containsKey(album.groupKey)) {
-                    map[album.groupKey] = index
+                    val rowStartIndex = index - index % columns
+                    map[album.groupKey] = rowStartIndex
                 }
             }
         }
@@ -113,138 +106,140 @@ fun AlbumsPage(
         stringResource(R.string.refreshing),
         stringResource(R.string.refresh_success)
     )
-    Box(modifier = modifier.fillMaxSize()) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            topBar = {
-                SmallTopAppBar(
-                    title = stringResource(R.string.album_list_title, albums.size),
-                    scrollBehavior = topAppBarScrollBehavior,
-                    navigationIcon = {
-                        IconButton(onClick = { navigator.navigate(SettingsDestination()) }) {
-                            Icon(
-                                imageVector = MiuixIcons.Settings,
-                                contentDescription = null
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { navigator.navigate(LocalSearchDestination) }) {
-                            Icon(
-                                imageVector = MiuixIcons.Search,
-                                contentDescription = stringResource(R.string.cd_search)
-                            )
-                        }
-                        OverlayIconDropdownMenu(
-                            entries = listOf(
-                                albumGridColumnsDropdownEntry(
-                                    columns = albumGridColumns,
-                                    onColumnsChange = viewModel::setGridColumns
-                                ),
-                                albumSortDropdownEntry(sortInfo, viewModel::onSortChange),
-                            )
-                        ) {
-                            Icon(
-                                imageVector = MiuixIcons.Sort,
-                                contentDescription = stringResource(R.string.cd_sort)
-                            )
-                        }
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            SmallTopAppBar(
+                title = stringResource(R.string.album_list_title, albums.size),
+                scrollBehavior = topAppBarScrollBehavior,
+                navigationIcon = {
+                    IconButton(onClick = { navigator.navigate(SettingsDestination()) }) {
+                        Icon(
+                            imageVector = MiuixIcons.Settings,
+                            contentDescription = null
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { navigator.navigate(LocalSearchDestination) }) {
+                        Icon(
+                            imageVector = MiuixIcons.Search,
+                            contentDescription = stringResource(R.string.cd_search)
+                        )
+                    }
+                    OverlayIconDropdownMenu(
+                        entries = listOf(
+                            albumGridColumnsDropdownEntry(
+                                columns = albumGridColumns,
+                                onColumnsChange = viewModel::setGridColumns
+                            ),
+                            albumSortDropdownEntry(sortInfo, viewModel::onSortChange),
+                        )
+                    ) {
+                        Icon(
+                            imageVector = MiuixIcons.Sort,
+                            contentDescription = stringResource(R.string.cd_sort)
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .padding(scaffoldTopHorizontalPadding(paddingValues))
+                .fillMaxSize()
+        ) {
+            if (albums.isEmpty()) {
+                LibraryEmptyState(
+                    title = stringResource(R.string.empty_albums_title),
+                    summary = stringResource(R.string.empty_library_index_summary),
+                    modifier = Modifier.align(Alignment.Center),
+                    action = {
+                        TextButton(
+                            text = stringResource(R.string.refresh),
+                            onClick = { viewModel.refreshSongs() },
+                            colors = MiuixButtonDefaults.textButtonColorsPrimary()
+                        )
                     }
                 )
-            }
-        ) { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .padding(scaffoldTopHorizontalPadding(paddingValues))
-                    .fillMaxSize()
-            ) {
-                if (albums.isEmpty()) {
-                    LibraryEmptyState(
-                        title = stringResource(R.string.empty_albums_title),
-                        summary = stringResource(R.string.empty_library_index_summary),
-                        modifier = Modifier.align(Alignment.Center),
-                        action = {
-                            TextButton(
-                                text = stringResource(R.string.refresh),
-                                onClick = { viewModel.refreshSongs() },
-                                colors = MiuixButtonDefaults.textButtonColorsPrimary()
-                            )
-                        }
-                    )
-                } else {
-                    PullToRefresh(
-                        isRefreshing = scanState.isScanning,
-                        onRefresh = { viewModel.refreshSongs() },
-                        modifier = Modifier.fillMaxSize(),
-                        topAppBarScrollBehavior = topAppBarScrollBehavior,
-                        refreshTexts = refreshTexts
+            } else {
+                PullToRefresh(
+                    isRefreshing = scanState.isScanning,
+                    onRefresh = { viewModel.refreshSongs() },
+                    modifier = Modifier.fillMaxSize(),
+                    topAppBarScrollBehavior = topAppBarScrollBehavior,
+                    refreshTexts = refreshTexts
+                ) {
+                    LazyVerticalGridScrollbar(
+                        state = gridState,
+                        settings = ScrollbarSettings.Default.copy(
+                            enabled = !enableIndex,
+                            alwaysShowScrollbar = !enableIndex,
+                            selectionMode = ScrollbarSelectionMode.Full,
+                            thumbUnselectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                            thumbSelectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions
+                        )
                     ) {
-                        LazyVerticalGridScrollbar(
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(albumGridColumns),
                             state = gridState,
-                            settings = ScrollbarSettings.Default.copy(
-                                enabled = !enableIndex,
-                                alwaysShowScrollbar = !enableIndex,
-                                selectionMode = ScrollbarSelectionMode.Full,
-                                thumbUnselectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                                thumbSelectedColor = MiuixTheme.colorScheme.onSurfaceVariantActions
-                            )
+                            modifier = Modifier
+                                .scrollEndHaptic()
+                                .overScrollVertical()
+                                .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
+                                .fillMaxSize(),
+                            contentPadding = PaddingValues(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            overscrollEffect = null
                         ) {
-                            LazyVerticalGrid(
-                                columns = GridCells.Fixed(albumGridColumns),
-                                state = gridState,
-                                modifier = Modifier
-                                    .scrollEndHaptic()
-                                    .overScrollVertical()
-                                    .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
-                                    .fillMaxSize(),
-                                contentPadding = PaddingValues(12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                overscrollEffect = null
-                            ) {
-                                items(
-                                    items = albums,
-                                    key = { it.id }
-                                ) { album ->
-                                    AlbumGridItem(
-                                        albumName = album.name,
-                                        summary = buildAlbumSummary(
-                                            songCountText = stringResource(R.string.song_count, album.songCount),
-                                            year = album.year
+                            items(
+                                items = albums,
+                                key = { it.id }
+                            ) { album ->
+                                AlbumGridItem(
+                                    albumName = album.name,
+                                    summary = buildAlbumSummary(
+                                        songCountText = stringResource(
+                                            R.string.song_count,
+                                            album.songCount
                                         ),
-                                        coverUri = album.coverSongUri,
-                                        coverLastModified = album.coverSongLastModified,
-                                        titleStyle = albumTextStyle.title,
-                                        summaryStyle = albumTextStyle.summary,
-                                        titleMaxLines = albumTextStyle.titleMaxLines,
-                                        onClick = {
-                                            navigator.navigate(AlbumDetailDestination(albumId = album.id))
-                                        }
-                                    )
-                                }
+                                        year = album.year
+                                    ),
+                                    coverUri = album.coverSongUri,
+                                    coverLastModified = album.coverSongLastModified,
+                                    titleStyle = albumTextStyle.title,
+                                    summaryStyle = albumTextStyle.summary,
+                                    titleMaxLines = albumTextStyle.titleMaxLines,
+                                    onClick = {
+                                        navigator.navigate(AlbumDetailDestination(albumId = album.id))
+                                    }
+                                )
                             }
                         }
                     }
-                    if (enableIndex) {
-                        AlphabetSideBar(
-                            sections = sections,
-                            sectionIndexMap = sectionIndexMap,
-                            order = sortInfo.order,
-                            scrollController = alphabetScrollController,
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .fillMaxHeight()
-                                .padding(
-                                    top = 24.dp,
-                                    bottom = 24.dp
-                                )
-                        )
-                    }
+                }
+                if (enableIndex) {
+                    AlphabetSideBar(
+                        sections = sections,
+                        sectionIndexMap = sectionIndexMap,
+                        order = sortInfo.order,
+                        scrollController = alphabetScrollController,
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight()
+                            .padding(
+                                top = 16.dp,
+                                bottom = 16.dp
+                            )
+                    )
                 }
             }
         }
     }
 }
+
 private fun buildAlbumSummary(
     songCountText: String,
     year: String?
@@ -254,6 +249,7 @@ private fun buildAlbumSummary(
         year?.takeIf { it.length == 4 && it.all(Char::isDigit) }
     ).joinToString(" ")
 }
+
 @Composable
 private fun albumGridColumnsDropdownEntry(
     columns: Int,
@@ -269,6 +265,7 @@ private fun albumGridColumnsDropdownEntry(
         }
     )
 }
+
 @Composable
 private fun albumSortDropdownEntry(
     sortInfo: AlbumSortInfo,

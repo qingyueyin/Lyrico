@@ -341,6 +341,7 @@ private fun AlphabetSideBarCell(
     size: Dp
 ) {
     val fontSize = when {
+        size < 15.dp -> 6.sp
         size < 20.dp -> 9.sp
         size < 24.dp -> 10.sp
         else -> 12.sp
