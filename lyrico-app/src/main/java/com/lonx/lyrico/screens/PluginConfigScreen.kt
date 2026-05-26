@@ -727,7 +727,7 @@ private fun PluginConfigFormItem(
         PluginConfigFieldType.SWITCH -> {
             SwitchPreference(
                 title = field.title,
-                summary = helperText(field, error),
+                summary = error ?: field.summary,
                 checked = value.toBooleanStrictOrNull() ?: false,
                 onCheckedChange = { checked ->
                     onValueChange(checked.toString())
@@ -756,7 +756,7 @@ private fun PluginConfigFormItem(
 
             WindowDropdownPreference(
                 title = field.title,
-                summary = helperText(field, error),
+                summary = error ?: field.summary,
                 entry = entry,
                 enabled = field.options.isNotEmpty(),
                 collapseOnSelection = true
@@ -830,16 +830,20 @@ private fun PluginConfigFormItem(
                     }
                 )
 
-                helperText(field, error).takeIf { it.isNotBlank() }?.let { helper ->
+                error?.let {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = helper,
+                        text = it,
                         fontSize = MiuixTheme.textStyles.footnote1.fontSize,
-                        color = if (error == null) {
-                            MiuixTheme.colorScheme.onSurfaceVariantActions
-                        } else {
-                            MiuixTheme.colorScheme.error
-                        }
+                        color = MiuixTheme.colorScheme.error
+                    )
+                }
+                field.summary?.let {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = it,
+                        fontSize = MiuixTheme.textStyles.footnote1.fontSize,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantActions
                     )
                 }
             }
@@ -847,7 +851,7 @@ private fun PluginConfigFormItem(
 
         PluginConfigFieldType.MARKDOWN -> {
             val markdown = field.defaultValue.ifBlank { field.summary }
-            if (markdown.isNotBlank()) {
+            if (!markdown.isNullOrEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1181,13 +1185,6 @@ private fun MetadataRuleBottomSheet(
             }
         }
     }
-}
-
-private fun helperText(field: PluginConfigField, error: String?): String {
-    return listOfNotNull(
-        field.summary.takeIf { it.isNotBlank() },
-        error
-    ).joinToString("\n")
 }
 
 private enum class PluginConfigTab(val labelRes: Int) {

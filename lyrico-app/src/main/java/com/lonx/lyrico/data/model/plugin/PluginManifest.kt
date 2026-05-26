@@ -46,7 +46,7 @@ enum class PluginCapability {
 data class PluginConfigField(
     val key: String,
     val title: String,
-    val summary: String = "",
+    val summary: String? = null,
     val group: String = "",
     val type: PluginConfigFieldType,
     val required: Boolean = false,
