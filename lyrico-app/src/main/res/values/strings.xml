@@ -757,4 +757,7 @@
 
     <string name="password_show">Show password</string>
     <string name="password_hide">Hide password</string>
+
+    <string name="folder_tab_folders">Folders</string>
+    <string name="folder_tab_songs">Songs</string>
 </resources>

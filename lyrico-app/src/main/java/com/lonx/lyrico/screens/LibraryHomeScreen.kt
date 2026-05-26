@@ -130,7 +130,7 @@ fun LibraryHomeScreen(
             SongBatchSelectionActions(
                 navigator = navigator,
                 songs = songs,
-                isSelectionMode = isSelectionMode && selectedTab == LibraryTab.Songs,
+                show = isSelectionMode && selectedTab == LibraryTab.Songs,
                 expanded = isBatchFabMenuExpanded,
                 selectedSongUris = selectedSongUris,
                 modifier = Modifier.padding(bottom = bottomBarPadding),

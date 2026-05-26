@@ -121,7 +121,7 @@ fun SongSelectionTopAppBar(
 fun BoxScope.SongBatchSelectionActions(
     navigator: DestinationsNavigator,
     songs: List<SongEntity>,
-    isSelectionMode: Boolean,
+    show: Boolean,
     expanded: Boolean,
     selectedSongUris: Set<String>,
     modifier: Modifier = Modifier,
@@ -267,7 +267,7 @@ fun BoxScope.SongBatchSelectionActions(
     )
 
     ExpandableFabMenu(
-        visible = isSelectionMode,
+        visible = show,
         expanded = expanded,
         enabled = selectedSongUris.isNotEmpty(),
         modifier = modifier,

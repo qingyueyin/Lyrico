@@ -263,7 +263,7 @@ fun ArtistDetailScreen(
         SongBatchSelectionActions(
             navigator = navigator,
             songs = songs,
-            isSelectionMode = isSelectionMode,
+            show = isSelectionMode,
             expanded = isFabMenuExpanded,
             selectedSongUris = selectedSongUris,
             onExpandedChange = { isFabMenuExpanded = it },

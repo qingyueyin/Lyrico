@@ -768,4 +768,7 @@
 
     <string name="password_show">显示密码</string>
     <string name="password_hide">隐藏密码</string>
+
+    <string name="folder_tab_folders">文件夹</string>
+    <string name="folder_tab_songs">歌曲</string>
 </resources>

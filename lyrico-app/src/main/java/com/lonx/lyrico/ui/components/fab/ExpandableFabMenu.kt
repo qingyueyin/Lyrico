@@ -9,6 +9,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -36,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.Icon
@@ -91,8 +94,8 @@ fun BoxScope.ExpandableFabMenu(
 
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(),
-        exit = fadeOut(),
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut(),
         modifier = baseModifier
     ) {
         MorphExpandableFabMenu(
@@ -288,3 +291,12 @@ fun ExpandableFabMenuStyle.expandedHeightFor(itemCount: Int): Dp {
     return (itemHeight * itemCount.coerceAtLeast(1) + verticalPadding)
         .coerceIn(minExpandedHeight, maxExpandedHeight)
 }
+private val ExpandableFabMenuPosition.transformOrigin: TransformOrigin
+    get() = when (this) {
+        ExpandableFabMenuPosition.BottomEnd -> TransformOrigin(1f, 1f)
+        ExpandableFabMenuPosition.BottomStart -> TransformOrigin(0f, 1f)
+        ExpandableFabMenuPosition.TopEnd -> TransformOrigin(1f, 0f)
+        ExpandableFabMenuPosition.TopStart -> TransformOrigin(0f, 0f)
+        ExpandableFabMenuPosition.CenterStart -> TransformOrigin(0f, 0.5f)
+        ExpandableFabMenuPosition.CenterEnd -> TransformOrigin(1f, 0.5f)
+    }

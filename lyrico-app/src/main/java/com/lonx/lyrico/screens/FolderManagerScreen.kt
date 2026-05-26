@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -62,6 +65,7 @@ import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.EditMetadataDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -73,7 +77,9 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -111,7 +117,8 @@ fun FolderManagerScreen(
     var currentFolderId by remember { mutableLongStateOf(ROOT_FOLDER_ID) }
     var selectedFolderId by remember { mutableLongStateOf(ROOT_FOLDER_ID) }
     var isFabMenuExpanded by remember { mutableStateOf(false) }
-
+    val scope = rememberCoroutineScope()
+    val pagerState = rememberPagerState(pageCount = { 2 })
     var selectedSong by remember { mutableStateOf<SongEntity?>(null) }
     var showMenuSheet by remember { mutableStateOf(false) }
     var showDetailSheet by remember { mutableStateOf(false) }
@@ -261,7 +268,11 @@ fun FolderManagerScreen(
                                     }
                                 }
 
-                                if (currentFolder != null && currentSongs.isNotEmpty()) {
+                                if (
+                                    currentFolder != null &&
+                                    pagerState.currentPage == 1 &&
+                                    currentSongs.isNotEmpty()
+                                ) {
                                     val sortTypes = SortBy.entries.toList()
                                     val sortEntries = DropdownEntry(
                                         items = sortTypes.map { sortType ->
@@ -394,80 +405,73 @@ fun FolderManagerScreen(
                     )
                 }
 
-                LazyColumn(
+                Card(
                     modifier = Modifier
-                        .scrollEndHaptic()
-                        .overScrollVertical()
-                        .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
-                        .fillMaxHeight(),
-                    contentPadding = PaddingValues(bottom = 12.dp),
-                    overscrollEffect = null,
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 8.dp)
                 ) {
-                    items(
-                        items = currentChildFolders,
-                        key = { folder -> "folder-${folder.id}" }
-                    ) { folder ->
-                        FolderListItem(
-                            folder = folder,
-                            node = folderTree.nodesById.getValue(folder.id),
-                            isScanning = folder.id in uiState.scanningFolderIds,
-                            isQueued = folder.id in uiState.queuedFolderIds,
-                            isSelectionMode = isSelectionMode,
-                            onClick = {
-                                if (!isSelectionMode) {
-                                    currentFolderId = folder.id
-                                }
-                            },
-                            canRemove = folder.addedBySaf,
-                            onDelete = {
-                                selectedFolderId = folder.id
-                                showConfirmDialog.value = true
-                            },
-                            onRefresh = {
-                                viewModel.refreshFolder(folder)
-                            },
-                            onIgnoredChange = { ignored ->
-                                viewModel.setFolderIgnored(folder, ignored)
+                    TabRowWithContour(
+                        tabs = listOf(
+                            stringResource(R.string.folder_tab_folders),
+                            stringResource(R.string.folder_tab_songs)
+                        ),
+                        selectedTabIndex = pagerState.currentPage,
+                        onTabSelected = { index ->
+                            scope.launch {
+                                pagerState.animateScrollToPage(index)
                             }
-                        )
-                    }
-
-                    items(
-                        items = currentSongs,
-                        key = { song ->
-                            song.uri.takeIf { it.isNotBlank() && it != "0" }
-                                ?: "song-${song.id}"
                         }
-                    ) { song ->
-                        SongListItem(
-                            song = song,
-                            isSelectionMode = isSelectionMode,
-                            modifier = Modifier.animateItem(),
-                            isSelected = selectedSongUris.contains(song.uri),
-                            onClick = {
-                                navigator.navigate(
-                                    EditMetadataDestination(songFileUri = song.uri)
-                                )
-                            },
-                            onToggleSelection = {
-                                selectionViewModel.toggleSelection(song.uri)
-                            },
-                            trailingContent = {
-                                Box(modifier = Modifier.padding(end = 8.dp)) {
-                                    SongListItemActions(
-                                        isSelectionMode = isSelectionMode,
-                                        isSelected = selectedSongUris.contains(song.uri),
-                                        onToggleSelection = {
-                                            selectionViewModel.toggleSelection(song.uri)
-                                        },
-                                        onShowMenu = {
-                                            selectedSong = song
-                                            showMenuSheet = true
-                                        }
+                    )
+                }
+
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) { page ->
+                    when (page) {
+                        0 -> {
+                            FolderChildrenPage(
+                                folders = currentChildFolders,
+                                folderTree = folderTree,
+                                scanningFolderIds = uiState.scanningFolderIds,
+                                queuedFolderIds = uiState.queuedFolderIds,
+                                isSelectionMode = isSelectionMode,
+                                topAppBarScrollBehavior = topAppBarScrollBehavior,
+                                onFolderClick = { folder ->
+                                    currentFolderId = folder.id
+                                },
+                                onDeleteFolder = { folder ->
+                                    selectedFolderId = folder.id
+                                    showConfirmDialog.value = true
+                                },
+                                onRefreshFolder = viewModel::refreshFolder,
+                                onIgnoredChange = viewModel::setFolderIgnored
+                            )
+                        }
+
+                        1 -> {
+                            FolderCurrentSongsPage(
+                                songs = currentSongs,
+                                isSelectionMode = isSelectionMode,
+                                selectedSongUris = selectedSongUris,
+                                topAppBarScrollBehavior = topAppBarScrollBehavior,
+                                onSongClick = { song ->
+                                    navigator.navigate(
+                                        EditMetadataDestination(songFileUri = song.uri)
                                     )
+                                },
+                                onToggleSelection = { song ->
+                                    selectionViewModel.toggleSelection(song.uri)
+                                },
+                                onShowSongMenu = { song ->
+                                    selectedSong = song
+                                    showMenuSheet = true
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
@@ -501,7 +505,7 @@ fun FolderManagerScreen(
         SongBatchSelectionActions(
             navigator = navigator,
             songs = currentSongs,
-            isSelectionMode = isSelectionMode,
+            show = isSelectionMode && pagerState.currentPage == 1 && currentSongs.isNotEmpty(),
             expanded = isFabMenuExpanded,
             selectedSongUris = selectedSongUris,
             onExpandedChange = { isFabMenuExpanded = it },
@@ -513,6 +517,113 @@ fun FolderManagerScreen(
 }
 
 private const val ROOT_FOLDER_ID = -1L
+
+@Composable
+private fun FolderChildrenPage(
+    folders: List<FolderEntity>,
+    folderTree: FolderTree,
+    scanningFolderIds: Set<Long>,
+    queuedFolderIds: Set<Long>,
+    isSelectionMode: Boolean,
+    topAppBarScrollBehavior: ScrollBehavior,
+    onFolderClick: (FolderEntity) -> Unit,
+    onDeleteFolder: (FolderEntity) -> Unit,
+    onRefreshFolder: (FolderEntity) -> Unit,
+    onIgnoredChange: (FolderEntity, Boolean) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .scrollEndHaptic()
+            .overScrollVertical()
+            .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
+            .fillMaxHeight(),
+        contentPadding = PaddingValues(bottom = 12.dp),
+        overscrollEffect = null
+    ) {
+        items(
+            items = folders,
+            key = { folder -> "folder-${folder.id}" }
+        ) { folder ->
+            FolderListItem(
+                folder = folder,
+                node = folderTree.nodesById.getValue(folder.id),
+                isScanning = folder.id in scanningFolderIds,
+                isQueued = folder.id in queuedFolderIds,
+                isSelectionMode = isSelectionMode,
+                onClick = {
+                    if (!isSelectionMode) {
+                        onFolderClick(folder)
+                    }
+                },
+                canRemove = folder.addedBySaf,
+                onDelete = {
+                    onDeleteFolder(folder)
+                },
+                onRefresh = {
+                    onRefreshFolder(folder)
+                },
+                onIgnoredChange = { ignored ->
+                    onIgnoredChange(folder, ignored)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun FolderCurrentSongsPage(
+    songs: List<SongEntity>,
+    isSelectionMode: Boolean,
+    selectedSongUris: Set<String>,
+    topAppBarScrollBehavior: ScrollBehavior,
+    onSongClick: (SongEntity) -> Unit,
+    onToggleSelection: (SongEntity) -> Unit,
+    onShowSongMenu: (SongEntity) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .scrollEndHaptic()
+            .overScrollVertical()
+            .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
+            .fillMaxHeight(),
+        contentPadding = PaddingValues(bottom = 12.dp),
+        overscrollEffect = null
+    ) {
+        items(
+            items = songs,
+            key = { song ->
+                song.uri.takeIf { it.isNotBlank() && it != "0" } ?: "song-${song.id}"
+            }
+        ) { song ->
+            SongListItem(
+                song = song,
+                modifier = Modifier.animateItem(),
+                isSelectionMode = isSelectionMode,
+                isSelected = selectedSongUris.contains(song.uri),
+                onClick = {
+                    onSongClick(song)
+                },
+                onToggleSelection = {
+                    onToggleSelection(song)
+                },
+                trailingContent = {
+                    Box(modifier = Modifier.padding(end = 8.dp)) {
+                        SongListItemActions(
+                            isSelectionMode = isSelectionMode,
+                            isSelected = selectedSongUris.contains(song.uri),
+                            onToggleSelection = {
+                                onToggleSelection(song)
+                            },
+                            onShowMenu = {
+                                onShowSongMenu(song)
+                            }
+                        )
+                    }
+                }
+            )
+        }
+    }
+}
 
 @Composable
 private fun FolderPathHeader(
