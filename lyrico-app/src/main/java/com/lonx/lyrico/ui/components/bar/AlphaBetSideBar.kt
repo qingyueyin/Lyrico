@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import com.lonx.lyrico.R
 import com.lonx.lyrico.viewmodel.SortOrder
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -71,7 +72,13 @@ fun AlphabetSideBar(
     var scrollJob by remember { mutableStateOf<Job?>(null) }
     var currentItem by remember { mutableStateOf<AlphabetSideBarItem?>(null) }
     var lastSelectedIndex by remember { mutableIntStateOf(-1) }
+    var indicatorItem by remember {
+        mutableStateOf<AlphabetSideBarItem?>(null)
+    }
 
+    var indicatorVisible by remember {
+        mutableStateOf(false)
+    }
     val items = remember(sections) {
         listOf<AlphabetSideBarItem>(AlphabetSideBarItem.ScrollTop) +
                 sections.map { AlphabetSideBarItem.Section(it) }
@@ -91,7 +98,17 @@ fun AlphabetSideBar(
         scrollJob?.cancel()
         scrollJob = null
         currentItem = null
+        indicatorItem = null
+        indicatorVisible = false
         lastSelectedIndex = -1
+    }
+    LaunchedEffect(indicatorVisible) {
+        if (!indicatorVisible) {
+            delay(180)
+            if (!indicatorVisible) {
+                indicatorItem = null
+            }
+        }
     }
 
     fun scrollToIndexFromSideBar(index: Int) {
@@ -127,7 +144,10 @@ fun AlphabetSideBar(
         lastSelectedIndex = index
 
         val item = items[index]
+
         currentItem = item
+        indicatorItem = item
+        indicatorVisible = true
 
         handleItemSelected(item)
 
@@ -136,6 +156,7 @@ fun AlphabetSideBar(
 
     fun clearSelection() {
         currentItem = null
+        indicatorVisible = false
         lastSelectedIndex = -1
     }
 
@@ -177,7 +198,8 @@ fun AlphabetSideBar(
             horizontalArrangement = Arrangement.End
         ) {
             AlphabetSideBarIndicator(
-                item = currentItem
+                item = indicatorItem,
+                visible = indicatorVisible
             )
 
             Box(
@@ -247,10 +269,11 @@ fun AlphabetSideBar(
 }
 @Composable
 private fun AlphabetSideBarIndicator(
-    item: AlphabetSideBarItem?
+    item: AlphabetSideBarItem?,
+    visible: Boolean
 ) {
     AnimatedVisibility(
-        visible = item != null,
+        visible = visible && item != null,
         enter = fadeIn() + scaleIn(),
         exit = fadeOut() + scaleOut()
     ) {
