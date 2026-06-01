@@ -2,7 +2,7 @@
 
 这是开发者编写插件的第一站。本文从零开始构建一个完整的 Lyrico 插件，展示 manifest、插件函数、配置项、运行结果字段、辅助脚本和打包方式如何配合工作。
 
-当前协议中，manifest 不再声明 `requiredHostApis` 或 `metadataFields`。插件应在运行结果中用 `fields` 返回宿主标准字段，用 `internal` 返回平台私有上下文。
+manifest 只声明插件身份、入口、能力和必要配置。插件应在运行结果中用 `fields` 返回宿主标准字段，用 `internal` 返回平台私有上下文。
 
 示例插件名为 **"MusicLib"**，对接一个虚构的 `https://api.musiclib.example.com` 音乐 API。
 

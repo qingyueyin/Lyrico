@@ -22,7 +22,7 @@
 | `capabilities` | `string[]` | 否 | `[]` | 插件能力 |
 | `configFields` | `ConfigField[]` | 否 | `[]` | 用户可配置项 |
 
-已移除的旧字段会被忽略：`requiredHostApis`、`returnedFields`、`metadataFields`、`defaultTarget`、`defaultMode`、`targetOptions`、`writeable`、`internal`、`customTagKey`。
+旧版本中用于声明宿主 API、返回字段或写入策略的字段已经不再需要；新插件不要继续写这些声明。
 
 ## 示例
 
@@ -72,7 +72,7 @@
 
 `id` 必须是反向域名格式，例如 `com.example.music_source`。
 
-`apiVersion` 用于插件协议兼容检查。插件需要 Host API 时直接调用运行时对象；宿主不再通过 `requiredHostApis` 做静态权限校验。缺失能力会在运行时返回标准化错误。
+`apiVersion` 用于插件协议兼容检查。插件需要宿主能力时直接调用运行时对象；缺失能力会在运行时返回标准化错误。
 
 `capabilities` 支持：
 

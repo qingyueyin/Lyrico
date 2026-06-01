@@ -2,7 +2,7 @@
 
 Lyrico 提供桌面端插件调试验证工具，可以在开发机上直接校验、运行和打包插件，避免每次修改后都手动导入到 Android 应用中验证。
 
-当前协议不再校验 `requiredHostApis` 或 `metadataFields`。调试重点是 manifest 基础字段、入口文件、运行函数返回值、`fields` 标准 key 和 `internal` 大小限制。
+调试重点是 manifest 基础字段、入口文件、运行函数返回值、`fields` 标准 key 和 `internal` 大小限制。
 
 工具位置：
 

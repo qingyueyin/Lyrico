@@ -1,6 +1,6 @@
 # 配置与运行结果字段
 
-插件协议现在只保留 `configFields` 作为 manifest 中的用户配置声明。插件不再通过 `metadataFields` 声明可写元数据，也不再声明默认写入目标或写入模式。
+插件协议只保留 `configFields` 作为 manifest 中的用户配置声明。运行结果中的元数据由 `fields` 返回，平台私有上下文由 `internal` 返回。
 
 ## 配置项
 
@@ -58,7 +58,7 @@
 }
 ```
 
-`internal` 不展示、不写入标签、不参与批量匹配字段配置，也不会传给其他插件。它只会原样传回产生该结果的同一个插件，例如 `getLyrics(request.song.internal.lyrics_id)`。
+`internal` 不展示、不写入标签、不参与批量匹配字段选择，也不会传给其他插件。它只会原样传回产生该结果的同一个插件，例如 `getLyrics(request.song.internal.lyrics_id)`。
 
 ## 写入策略
 

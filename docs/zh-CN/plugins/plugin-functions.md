@@ -103,7 +103,7 @@ function searchSongs(request) {
 | 发行日期 | `date`, `releaseDate`, `release_date` |
 | 音轨号 | `trackNumber`, `trackerNumber`, `track_number` |
 | 封面 URL | `picUrl`, `coverUrl`, `cover_url`, `artworkUrl` |
-| 标准元数据字段 | `fields`, `metadata` |
+| 标准元数据字段 | `fields` |
 | 插件私有上下文 | `internal` |
 
 `artist` 字段还支持数组格式（自动以 `/` 连接）：
@@ -142,7 +142,7 @@ function searchSongs(request) {
 
 当前标准字段包括：`title`、`artist`、`album`、`album_artist`、`genre`、`date`、`track_number`、`disc_number`、`composer`、`lyricist`、`comment`、`lyrics`、`cover_url`、`language`、`copyright`、`rating`、`replaygain_track_gain`、`replaygain_track_peak`、`replaygain_album_gain`、`replaygain_album_peak`、`replaygain_reference_loudness`。
 
-`internal` 不展示、不写入标签、不参与批量匹配字段配置，只会原样传回产生该结果的同一个插件。
+`internal` 不展示、不写入标签、不参与批量匹配字段选择，只会原样传回产生该结果的同一个插件。
 
 ---
 
