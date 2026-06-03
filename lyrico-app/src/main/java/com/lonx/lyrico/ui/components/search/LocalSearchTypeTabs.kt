@@ -5,14 +5,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.lonx.lyrico.data.model.search.LocalSearchType
+import com.lonx.lyrico.data.model.search.LocalSearchResultTab
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.TabRowWithContour
 
 @Composable
 fun LocalSearchTypeTabs(
-    selectedType: LocalSearchType,
-    onTypeSelected: (LocalSearchType) -> Unit,
+    selectedTab: LocalSearchResultTab,
+    onTabSelected: (LocalSearchResultTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -21,10 +21,10 @@ fun LocalSearchTypeTabs(
             .padding(bottom = 12.dp)
     ) {
         TabRowWithContour(
-            tabs = LocalSearchType.entries.map { stringResource(it.labelRes) },
-            selectedTabIndex = LocalSearchType.entries.indexOf(selectedType),
+            tabs = LocalSearchResultTab.entries.map { stringResource(it.labelRes) },
+            selectedTabIndex = LocalSearchResultTab.entries.indexOf(selectedTab),
             onTabSelected = {
-                onTypeSelected(LocalSearchType.entries[it])
+                onTabSelected(LocalSearchResultTab.entries[it])
             }
         )
     }
