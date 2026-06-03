@@ -15,17 +15,12 @@ fun LocalSearchTypeTabs(
     onTabSelected: (LocalSearchResultTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier
-            .padding(horizontal = 12.dp)
-            .padding(bottom = 12.dp)
-    ) {
-        TabRowWithContour(
-            tabs = LocalSearchResultTab.entries.map { stringResource(it.labelRes) },
-            selectedTabIndex = LocalSearchResultTab.entries.indexOf(selectedTab),
-            onTabSelected = {
-                onTabSelected(LocalSearchResultTab.entries[it])
-            }
-        )
-    }
+    TabRowWithContour(
+        modifier = modifier,
+        tabs = LocalSearchResultTab.entries.map { stringResource(it.labelRes) },
+        selectedTabIndex = LocalSearchResultTab.entries.indexOf(selectedTab),
+        onTabSelected = {
+            onTabSelected(LocalSearchResultTab.entries[it])
+        }
+    )
 }

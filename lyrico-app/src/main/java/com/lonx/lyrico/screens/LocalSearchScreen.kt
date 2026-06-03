@@ -16,6 +16,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -119,58 +120,68 @@ fun LocalSearchScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
-                Column(
-                    modifier = Modifier.background(MiuixTheme.colorScheme.surface)
-                ) {
-                    AnimatedContent(
-                        targetState = isSelectionMode,
-                        label = "LocalSearchTopBarAnimation",
-                        transitionSpec = {
-                            val animationDuration = 300
-                            val enter = fadeIn(tween(animationDuration)) +
-                                slideInVertically(
-                                    animationSpec = tween(
-                                        animationDuration,
-                                        easing = FastOutSlowInEasing
-                                    ),
-                                    initialOffsetY = { -it / 3 }
-                                )
-                            val exit = fadeOut(tween(animationDuration)) +
-                                slideOutVertically(
-                                    animationSpec = tween(
-                                        animationDuration,
-                                        easing = FastOutSlowInEasing
-                                    ),
-                                    targetOffsetY = { -it / 3 }
-                                )
+                AnimatedContent(
+                    targetState = isSelectionMode,
+                    label = "LocalSearchTopBarAnimation",
+                    transitionSpec = {
+                        val animationDuration = 300
+                        val enter = fadeIn(tween(animationDuration)) +
+                            slideInVertically(
+                                animationSpec = tween(
+                                    animationDuration,
+                                    easing = FastOutSlowInEasing
+                                ),
+                                initialOffsetY = { -it / 3 }
+                            )
+                        val exit = fadeOut(tween(animationDuration)) +
+                            slideOutVertically(
+                                animationSpec = tween(
+                                    animationDuration,
+                                    easing = FastOutSlowInEasing
+                                ),
+                                targetOffsetY = { -it / 3 }
+                            )
 
-                            (enter togetherWith exit).using(SizeTransform(clip = false))
-                        }
-                    ) { selectionMode ->
-                        if (selectionMode) {
-                            SongSelectionTopAppBar(
-                                songs = uiState.songs,
-                                selectedSongUris = selectedSongUris,
-                                scrollBehavior = topAppBarScrollBehavior,
-                                onSelectAll = selectionViewModel::selectAll,
-                                onDeselectAll = selectionViewModel::deselectAll,
-                                onClose = selectionViewModel::exitSelectionMode
-                            )
-                        } else {
-                            SmallTopAppBar(
-                                title = stringResource(R.string.local_search_title),
-                                navigationIcon = {
-                                    IconButton(onClick = { navigator.popBackStack() }) {
-                                        Icon(
-                                            imageVector = MiuixIcons.Back,
-                                            contentDescription = stringResource(R.string.action_back)
-                                        )
-                                    }
-                                },
-                                scrollBehavior = topAppBarScrollBehavior
-                            )
-                        }
+                        (enter togetherWith exit).using(SizeTransform(clip = false))
+                    },
+                    modifier = Modifier
+                        .background(MiuixTheme.colorScheme.surface)
+                        .fillMaxWidth()
+                ) { selectionMode ->
+                    if (selectionMode) {
+                        SongSelectionTopAppBar(
+                            songs = uiState.songs,
+                            selectedSongUris = selectedSongUris,
+                            scrollBehavior = topAppBarScrollBehavior,
+                            onSelectAll = selectionViewModel::selectAll,
+                            onDeselectAll = selectionViewModel::deselectAll,
+                            onClose = selectionViewModel::exitSelectionMode
+                        )
+                    } else {
+                        SmallTopAppBar(
+                            title = stringResource(R.string.local_search_title),
+                            navigationIcon = {
+                                IconButton(onClick = { navigator.popBackStack() }) {
+                                    Icon(
+                                        imageVector = MiuixIcons.Back,
+                                        contentDescription = stringResource(R.string.action_back)
+                                    )
+                                }
+                            },
+                            scrollBehavior = topAppBarScrollBehavior
+                        )
                     }
+                }
+            }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(scaffoldContentPadding(paddingValues))
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                ) {
                     AnimatedVisibility(
                         visible = !isSelectionMode,
                         enter = expandVertically(
@@ -209,145 +220,165 @@ fun LocalSearchScreen(
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         )
                     }
-                    if (searchQuery.isNotBlank()) {
-                        LocalSearchTypeTabs(
-                            selectedTab = currentTab,
-                            onTabSelected = { currentTab = it }
-                        )
-                    }
-                }
-            }
-        ) { paddingValues ->
-            LazyColumn(
-                modifier = Modifier
-                    .scrollEndHaptic()
-                    .overScrollVertical()
-                    .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
-                    .dragSelection(
-                        listState = listState,
-                        itemCount = uiState.songs.size,
-                        isSelectionMode = isSelectionMode,
-                        itemInfoMapper = { itemInfo ->
-                            songIndexByLazyListKey[itemInfo.key]
-                        },
-                        onDragSelectionStart = { index ->
-                            selectionViewModel.startDragSelection(index, uiState.songs)
-                        },
-                        onDragSelectionChange = { startIndex, endIndex ->
-                            selectionViewModel.updateDragSelection(
-                                startIndex,
-                                endIndex,
-                                uiState.songs
+
+                    AnimatedVisibility(
+                        visible = searchQuery.isNotBlank(),
+                        enter = expandVertically(
+                            animationSpec = tween(
+                                durationMillis = 300,
+                                easing = FastOutSlowInEasing
                             )
-                        },
-                        onDragSelectionEnd = selectionViewModel::endDragSelection
-                    )
-                    .fillMaxHeight(),
-                state = listState,
-                contentPadding = scaffoldContentPadding(
-                    paddingValues = paddingValues,
-                    bottomExtra = 12.dp
-                ),
-                overscrollEffect = null
-            ) {
-                if (searchQuery.isNotBlank() && !hasCurrentTabResults) {
-                    item {
-                        SearchEmptyCard()
+                        ) + fadeIn(tween(300)),
+                        exit = shrinkVertically(
+                            animationSpec = tween(
+                                durationMillis = 300,
+                                easing = FastOutSlowInEasing
+                            )
+                        ) + fadeOut(tween(300))
+                    ) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                                .padding(bottom = 8.dp)
+                        ) {
+                            LocalSearchTypeTabs(
+                                selectedTab = currentTab,
+                                onTabSelected = { currentTab = it }
+                            )
+                        }
                     }
-                }
 
-                if (showArtists && uiState.artists.isNotEmpty()) {
-                    item {
-                        SearchSectionHeader(
-                            title = stringResource(R.string.search_section_artists),
-                            subtitle = stringResource(R.string.song_count, uiState.artists.size)
-                        )
-                    }
-                    items(
-                        items = uiState.artists,
-                        key = { artist -> artist.artist }
-                    ) { artist ->
-                        ArtistSongItem(
-                            name = artist.artist,
-                            subtitle = stringResource(
-                                R.string.album_song_count,
-                                artist.albumCount,
-                                artist.songCount
-                            ),
-                            coverUri = artist.coverSongUri,
-                            coverLastModified = artist.coverSongLastModified,
-                            onClick = {
-                                navigator.navigate(ArtistDetailDestination(artistId = artist.id))
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .scrollEndHaptic()
+                            .overScrollVertical()
+                            .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
+                            .dragSelection(
+                                listState = listState,
+                                itemCount = uiState.songs.size,
+                                isSelectionMode = isSelectionMode,
+                                itemInfoMapper = { itemInfo ->
+                                    songIndexByLazyListKey[itemInfo.key]
+                                },
+                                onDragSelectionStart = { index ->
+                                    selectionViewModel.startDragSelection(index, uiState.songs)
+                                },
+                                onDragSelectionChange = { startIndex, endIndex ->
+                                    selectionViewModel.updateDragSelection(
+                                        startIndex,
+                                        endIndex,
+                                        uiState.songs
+                                    )
+                                },
+                                onDragSelectionEnd = selectionViewModel::endDragSelection
+                            )
+                            .fillMaxHeight(),
+                        state = listState,
+                        contentPadding = PaddingValues(bottom = 12.dp),
+                        overscrollEffect = null
+                    ) {
+                        if (searchQuery.isNotBlank() && !hasCurrentTabResults) {
+                            item {
+                                SearchEmptyCard()
                             }
-                        )
-                    }
-                }
+                        }
 
-                if (showAlbums && uiState.albums.isNotEmpty()) {
-                    item {
-                        SearchSectionHeader(
-                            title = stringResource(R.string.search_section_albums),
-                            subtitle = stringResource(R.string.album_count, uiState.albums.size)
-                        )
-                    }
-                    items(
-                        items = uiState.albums,
-                        key = { album -> "${album.album}|${album.albumArtist.orEmpty()}" }
-                    ) { album ->
-                        AlbumSongItem(
-                            title = album.album,
-                            subtitle = listOfNotNull(
-                                album.albumArtist,
-                                stringResource(R.string.song_count, album.songCount)
-                            ).joinToString(" - "),
-                            coverUri = album.coverSongUri,
-                            coverLastModified = album.coverSongLastModified,
-                            onClick = {
-                                navigator.navigate(
-                                    AlbumDetailDestination(albumId = album.id)
+                        if (showArtists && uiState.artists.isNotEmpty()) {
+                            item {
+                                SearchSectionHeader(
+                                    title = stringResource(R.string.search_section_artists),
+                                    subtitle = stringResource(R.string.song_count, uiState.artists.size)
                                 )
                             }
-                        )
-                    }
-                }
-
-                if (showSongs && uiState.songs.isNotEmpty()) {
-                    item {
-                        SearchSectionHeader(
-                            title = stringResource(R.string.search_section_songs),
-                            subtitle = stringResource(R.string.song_count, uiState.songs.size)
-                        )
-                    }
-                    items(
-                        items = uiState.songs,
-                        key = ::localSearchSongKey
-                    ) { song ->
-                        SongListItem(
-                            song = song,
-                            isSelectionMode = isSelectionMode,
-                            isSelected = selectedSongUris.contains(song.uri),
-                            onClick = {
-                                navigator.navigate(EditMetadataDestination(songFileUri = song.uri))
-                            },
-                            onToggleSelection = {
-                                selectionViewModel.toggleSelection(song.uri)
-                            },
-                            trailingContent = {
-                                Box(modifier = Modifier.padding(end = 8.dp)) {
-                                    SongListItemActions(
-                                        isSelectionMode = isSelectionMode,
-                                        isSelected = selectedSongUris.contains(song.uri),
-                                        onToggleSelection = {
-                                            selectionViewModel.toggleSelection(song.uri)
-                                        },
-                                        onShowMenu = {
-                                            selectedSong = song
-                                            showMenuSheet = true
-                                        }
-                                    )
-                                }
+                            items(
+                                items = uiState.artists,
+                                key = { artist -> artist.artist }
+                            ) { artist ->
+                                ArtistSongItem(
+                                    name = artist.artist,
+                                    subtitle = stringResource(
+                                        R.string.album_song_count,
+                                        artist.albumCount,
+                                        artist.songCount
+                                    ),
+                                    coverUri = artist.coverSongUri,
+                                    coverLastModified = artist.coverSongLastModified,
+                                    onClick = {
+                                        navigator.navigate(ArtistDetailDestination(artistId = artist.id))
+                                    }
+                                )
                             }
-                        )
+                        }
+
+                        if (showAlbums && uiState.albums.isNotEmpty()) {
+                            item {
+                                SearchSectionHeader(
+                                    title = stringResource(R.string.search_section_albums),
+                                    subtitle = stringResource(R.string.album_count, uiState.albums.size)
+                                )
+                            }
+                            items(
+                                items = uiState.albums,
+                                key = { album -> "${album.album}|${album.albumArtist.orEmpty()}" }
+                            ) { album ->
+                                AlbumSongItem(
+                                    title = album.album,
+                                    subtitle = listOfNotNull(
+                                        album.albumArtist,
+                                        stringResource(R.string.song_count, album.songCount)
+                                    ).joinToString(" - "),
+                                    coverUri = album.coverSongUri,
+                                    coverLastModified = album.coverSongLastModified,
+                                    onClick = {
+                                        navigator.navigate(
+                                            AlbumDetailDestination(albumId = album.id)
+                                        )
+                                    }
+                                )
+                            }
+                        }
+
+                        if (showSongs && uiState.songs.isNotEmpty()) {
+                            item {
+                                SearchSectionHeader(
+                                    title = stringResource(R.string.search_section_songs),
+                                    subtitle = stringResource(R.string.song_count, uiState.songs.size)
+                                )
+                            }
+                            items(
+                                items = uiState.songs,
+                                key = ::localSearchSongKey
+                            ) { song ->
+                                SongListItem(
+                                    song = song,
+                                    isSelectionMode = isSelectionMode,
+                                    isSelected = selectedSongUris.contains(song.uri),
+                                    onClick = {
+                                        navigator.navigate(EditMetadataDestination(songFileUri = song.uri))
+                                    },
+                                    onToggleSelection = {
+                                        selectionViewModel.toggleSelection(song.uri)
+                                    },
+                                    trailingContent = {
+                                        Box(modifier = Modifier.padding(end = 8.dp)) {
+                                            SongListItemActions(
+                                                isSelectionMode = isSelectionMode,
+                                                isSelected = selectedSongUris.contains(song.uri),
+                                                onToggleSelection = {
+                                                    selectionViewModel.toggleSelection(song.uri)
+                                                },
+                                                onShowMenu = {
+                                                    selectedSong = song
+                                                    showMenuSheet = true
+                                                }
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
