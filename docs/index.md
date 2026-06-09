@@ -7,6 +7,9 @@ hero:
   tagline: 支持编辑音频标签，可使用 JavaScript 插件扩展搜索音频标签
   actions:
     - theme: brand
+      text: 使用指南
+      link: /guide/
+    - theme: alt
       text: 了解插件
       link: /plugins/
     - theme: alt

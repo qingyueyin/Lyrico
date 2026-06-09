@@ -7,7 +7,10 @@ hero:
   tagline: Edit audio tags and extend online metadata search with JavaScript plugins.
   actions:
     - theme: brand
-      text: Learn plugins
+      text: User Guide
+      link: /en-US/guide/
+    - theme: alt
+      text: Learn Plugins
       link: /en-US/plugins/
     - theme: alt
       text: GitHub

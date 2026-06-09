@@ -33,6 +33,38 @@ const socialLinks = [
 ]
 
 const zhSidebar = {
+  '/guide/': [
+    {
+      text: '使用指南',
+      items: [
+        { text: '指南首页', link: '/guide/' },
+        { text: '快速开始', link: '/guide/getting-started' },
+        { text: '浏览音乐库', link: '/guide/browsing' },
+        { text: '资料库与文件夹', link: '/guide/library' },
+        { text: '单曲编辑', link: '/guide/single-song' },
+        { text: '批量操作', link: '/guide/batch' },
+        { text: '使用插件', link: '/guide/plugins' },
+      ],
+    },
+    {
+      text: '设置',
+      items: [
+        { text: '设置概览', link: '/guide/settings/' },
+        { text: '外观', link: '/guide/settings/appearance' },
+        { text: '搜索设置', link: '/guide/settings/search' },
+        { text: '歌词设置', link: '/guide/settings/lyrics' },
+        { text: '元数据处理', link: '/guide/settings/metadata' },
+        { text: '备份与恢复', link: '/guide/settings/backup' },
+        { text: '维护', link: '/guide/settings/maintenance' },
+      ],
+    },
+    {
+      text: '更多',
+      items: [
+        { text: '常见问题', link: '/guide/faq' },
+      ],
+    },
+  ],
   '/plugins/': [
     {
       text: '使用插件',
@@ -68,6 +100,38 @@ const zhSidebar = {
 }
 
 const enSidebar = {
+  '/en-US/guide/': [
+    {
+      text: 'User Guide',
+      items: [
+        { text: 'Guide Home', link: '/en-US/guide/' },
+        { text: 'Getting Started', link: '/en-US/guide/getting-started' },
+        { text: 'Browsing Your Library', link: '/en-US/guide/browsing' },
+        { text: 'Library & Folders', link: '/en-US/guide/library' },
+        { text: 'Single Song Editing', link: '/en-US/guide/single-song' },
+        { text: 'Batch Operations', link: '/en-US/guide/batch' },
+        { text: 'Using Plugins', link: '/en-US/guide/plugins' },
+      ],
+    },
+    {
+      text: 'Settings',
+      items: [
+        { text: 'Settings Overview', link: '/en-US/guide/settings/' },
+        { text: 'Appearance', link: '/en-US/guide/settings/appearance' },
+        { text: 'Search Settings', link: '/en-US/guide/settings/search' },
+        { text: 'Lyrics Settings', link: '/en-US/guide/settings/lyrics' },
+        { text: 'Metadata Processing', link: '/en-US/guide/settings/metadata' },
+        { text: 'Backup & Restore', link: '/en-US/guide/settings/backup' },
+        { text: 'Maintenance', link: '/en-US/guide/settings/maintenance' },
+      ],
+    },
+    {
+      text: 'More',
+      items: [
+        { text: 'FAQ', link: '/en-US/guide/faq' },
+      ],
+    },
+  ],
   '/en-US/plugins/': [
     {
       text: 'Using Plugins',
@@ -117,6 +181,7 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: '首页', link: '/' },
+          { text: '使用指南', link: '/guide/' },
           { text: '插件', link: '/plugins/' },
         ],
         returnToTopLabel: '回到顶部',
@@ -149,6 +214,7 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Home', link: '/en-US/' },
+          { text: 'Guide', link: '/en-US/guide/' },
           { text: 'Plugins', link: '/en-US/plugins/' },
         ],
         returnToTopLabel: 'Return to top',
@@ -191,6 +257,7 @@ export default defineConfig({
     logo: `/logo.svg`,
     nav: [
       { text: '首页', link: '/' },
+      { text: '使用指南', link: '/guide/' },
       { text: '插件', link: '/plugins/' },
       { text: 'English', link: '/en-US/' },
     ],
