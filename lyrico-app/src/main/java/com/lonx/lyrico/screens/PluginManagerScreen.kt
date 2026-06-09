@@ -416,9 +416,8 @@ fun PluginManagerScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.padding(vertical = 12.dp))
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
         }
     )
 }

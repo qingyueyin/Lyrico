@@ -198,7 +198,7 @@ fun BatchMatchConfigBottomSheet(
                         }
                     )
                 }
-
+                Spacer(modifier = Modifier.padding(vertical = 12.dp))
             }
         },
         onDismissRequest = { onDismissRequest(config) },

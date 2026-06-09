@@ -124,6 +124,7 @@ fun BatchExportBottomSheet(
                     )
                 }
             }
+            Spacer(modifier = Modifier.padding(vertical = 12.dp))
         },
         endAction = {
             TextButton(

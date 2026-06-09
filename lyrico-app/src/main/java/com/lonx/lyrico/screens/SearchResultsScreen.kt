@@ -967,6 +967,7 @@ private fun SearchResultApplyBottomSheet(
                             }
                         )
                     }
+                    Spacer(modifier = Modifier.padding(vertical = 12.dp))
                 }
             }
         }

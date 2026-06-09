@@ -76,6 +76,7 @@ fun BatchRGConfigBottomSheet(
                     }
                 )
             }
+            Spacer(modifier = Modifier.padding(vertical = 12.dp))
         },
         onDismissRequest = { onDismissRequest(concurrency) },
         onConfirm = {

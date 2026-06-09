@@ -103,7 +103,6 @@ fun BatchLyricsFormatConfigBottomSheet(
                 }
 
                 Card(
-                    modifier = Modifier.padding(bottom = 12.dp),
                     colors = CardDefaults.defaultColors(
                         color = MiuixTheme.colorScheme.secondaryContainer,
                     )
@@ -144,6 +143,7 @@ fun BatchLyricsFormatConfigBottomSheet(
                         }
                     )
                 }
+                Spacer(modifier = Modifier.padding(vertical = 12.dp))
             }
         },
         onDismissRequest = {

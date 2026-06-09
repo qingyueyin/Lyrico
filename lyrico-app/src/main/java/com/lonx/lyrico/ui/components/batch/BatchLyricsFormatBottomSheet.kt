@@ -131,7 +131,7 @@ fun BatchLyricsFormatBottomSheet(
                         style = MiuixTheme.textStyles.main
                     )
                 }
-
+                Spacer(modifier = Modifier.padding(vertical = 12.dp))
             }
         },
         endAction = {

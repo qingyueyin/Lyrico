@@ -41,7 +41,6 @@ fun ActionBottomSheet(
                 .fillMaxWidth()
         ) {
             content()
-            Spacer(modifier = Modifier.padding(vertical = 32.dp))
         }
     }
 }
