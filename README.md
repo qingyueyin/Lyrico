@@ -97,7 +97,7 @@ Lyrico 的在线音乐信息搜索采用插件化架构。搜索源插件以 Jav
 
 如果 Lyrico 对你有帮助，可以通过 [爱发电](https://ifdian.net/a/replica0110) 支持项目维护。
 
-赞助者列表：https://github.com/Replica0110/Sponsors
+[赞助者列表](https://replica0110.github.io/Sponsors/)
 
 ## 许可证
 
