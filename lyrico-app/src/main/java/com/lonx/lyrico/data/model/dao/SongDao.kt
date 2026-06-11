@@ -174,6 +174,39 @@ interface SongDao {
     fun searchSongsForLocalSearch(query: String): Flow<List<SongEntity>>
 
     @Query("""
+        SELECT s.* FROM songs AS s
+        INNER JOIN folders AS f ON s.folderId = f.id
+        WHERE f.isIgnored = 0
+          AND s.lyricSearchText IS NOT NULL
+          AND s.lyricSearchText LIKE '%' || :query || '%'
+        ORDER BY
+            CASE
+                WHEN s.lyricSearchText LIKE :query || '%' THEN 0
+                ELSE 1
+            END,
+            s.title ASC,
+            s.fileName ASC
+    """)
+    fun searchLyricsForLocalSearch(query: String): Flow<List<SongEntity>>
+
+    @Query("""
+        SELECT * FROM songs
+        WHERE lyrics IS NOT NULL
+          AND TRIM(lyrics) != ''
+          AND (
+              lyricSearchText IS NULL
+              OR lyricSearchText = lyrics
+          )
+    """)
+    suspend fun getSongsNeedingLyricSearchTextIndex(): List<SongEntity>
+
+    @Query("UPDATE songs SET lyricSearchText = :lyricSearchText WHERE uri = :uri")
+    suspend fun updateLyricSearchText(
+        uri: String,
+        lyricSearchText: String?
+    )
+
+    @Query("""
         SELECT
             album,
             albumArtist,

@@ -3,6 +3,7 @@ package com.lonx.lyrico.data.song.mapper
 import com.lonx.audiotag.model.AudioTagData
 import com.lonx.lyrico.data.model.SongFile
 import com.lonx.lyrico.data.model.entity.SongEntity
+import com.lonx.lyrico.utils.LyricsSearchTextExtractor
 
 class SongMetadataMapper(
     private val sortKeyUpdater: SortKeyUpdater
@@ -12,6 +13,7 @@ class SongMetadataMapper(
         tag: AudioTagData,
         fileLastModified: Long = System.currentTimeMillis()
     ): SongEntity {
+        val lyrics = tag.lyrics ?: old.lyrics
         return old.copy(
             title = tag.title ?: old.title,
             artist = tag.artist ?: old.artist,
@@ -24,7 +26,12 @@ class SongMetadataMapper(
             composer = tag.composer ?: old.composer,
             lyricist = tag.lyricist ?: old.lyricist,
             comment = tag.comment ?: old.comment,
-            lyrics = tag.lyrics ?: old.lyrics,
+            lyrics = lyrics,
+            lyricSearchText = if (tag.lyrics != null) {
+                LyricsSearchTextExtractor.toSearchText(lyrics)
+            } else {
+                old.lyricSearchText
+            },
             language = tag.language ?: old.language,
             copyright = tag.copyright ?: old.copyright,
             rating = tag.rating ?: old.rating,
@@ -63,6 +70,7 @@ class SongMetadataMapper(
             date = tag.date,
             language = tag.language,
             lyrics = tag.lyrics,
+            lyricSearchText = LyricsSearchTextExtractor.toSearchText(tag.lyrics),
             composer = tag.composer,
             lyricist = tag.lyricist,
             comment = tag.comment,

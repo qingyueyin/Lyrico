@@ -15,6 +15,10 @@ interface SongSearchRepository {
 
     fun searchSongsForLocalSearch(query: String): Flow<List<SongEntity>>
 
+    fun searchLyricsForLocalSearch(query: String): Flow<List<SongEntity>>
+
+    suspend fun rebuildMissingLyricSearchTextIndex()
+
     fun searchAlbumsForLocalSearch(query: String): Flow<List<AlbumSearchRow>>
 
     fun searchArtistsForLocalSearch(query: String): Flow<List<ArtistSearchRow>>

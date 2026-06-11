@@ -40,8 +40,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -66,6 +69,8 @@ fun SongListItem(
     isSelected: Boolean = false,
     swipeSelectionLabel: String? = null,
     swipeSelectionSecondaryLabel: String? = null,
+    lyricPreview: String? = null,
+    lyricMatchQuery: String? = null,
     onClick: () -> Unit,
     onToggleSelection: (() -> Unit)? = null,
     onSwipeSelection: (() -> Unit)? = null,
@@ -100,7 +105,7 @@ fun SongListItem(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
+                    .matchParentSize()
             ) {
                 Box(
                     modifier = Modifier
@@ -300,6 +305,19 @@ fun SongListItem(
                             )
                         }
                     }
+                    lyricPreview?.takeIf { it.isNotBlank() }?.let { preview ->
+                        Text(
+                            text = highlightedLyricPreview(
+                                text = stringResource(R.string.lyric_preview_text, preview),
+                                query = lyricMatchQuery.orEmpty(),
+                                highlightColor = MiuixTheme.colorScheme.primary
+                            ),
+                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant,
+                            fontSize = 12.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
                 Column(
@@ -337,6 +355,39 @@ fun SongListItem(
                     }
                 }
             }
+
         }
+    }
+}
+
+private fun highlightedLyricPreview(
+    text: String,
+    query: String,
+    highlightColor: Color
+) = buildAnnotatedString {
+    val keyword = query.trim()
+    if (keyword.isBlank()) {
+        append(text)
+        return@buildAnnotatedString
+    }
+
+    var startIndex = 0
+    while (startIndex < text.length) {
+        val matchIndex = text.indexOf(keyword, startIndex, ignoreCase = true)
+        if (matchIndex < 0) {
+            append(text.substring(startIndex))
+            break
+        }
+
+        append(text.substring(startIndex, matchIndex))
+        withStyle(
+            SpanStyle(
+                color = highlightColor,
+                fontWeight = FontWeight.Bold
+            )
+        ) {
+            append(text.substring(matchIndex, matchIndex + keyword.length))
+        }
+        startIndex = matchIndex + keyword.length
     }
 }

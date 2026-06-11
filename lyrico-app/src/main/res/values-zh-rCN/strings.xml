@@ -820,4 +820,5 @@
     <string name="field_group_lyrics_cover">歌词与封面</string>
     <string name="field_group_extra_info">扩展信息</string>
     <string name="field_group_replay_gain">ReplayGain</string>
+    <string name="lyric_preview_text">歌词: %s</string>
 </resources>

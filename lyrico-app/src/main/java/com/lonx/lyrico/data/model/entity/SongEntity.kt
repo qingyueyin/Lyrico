@@ -42,6 +42,7 @@ import androidx.room.PrimaryKey
  * @property trackerNumber 音轨号（专辑内排序）
  * @property date 发行或录制日期（字符串形式，保留原始格式）
  * @property lyrics 歌词文本
+ * @property lyricSearchText 歌词纯文本搜索索引
  * @property replayGainTrackGain ReplayGain 曲目增益
  * @property replayGainTrackPeak ReplayGain 曲目峰值
  * @property replayGainAlbumGain ReplayGain 专辑增益
@@ -116,6 +117,8 @@ data class SongEntity(
     val date: String? = null,
     val lyrics: String? = null,
     @ColumnInfo(defaultValue = "NULL")
+    val lyricSearchText: String? = null,
+    @ColumnInfo(defaultValue = "NULL")
     val copyright: String? = null,
     @ColumnInfo(defaultValue = "NULL")
     val rating: Int? = null,
@@ -168,6 +171,7 @@ data class SongEntity(
         if (trackerNumber != other.trackerNumber) return false
         if (date != other.date) return false
         if (lyrics != other.lyrics) return false
+        if (lyricSearchText != other.lyricSearchText) return false
         if (replayGainTrackGain != other.replayGainTrackGain) return false
         if (replayGainTrackPeak != other.replayGainTrackPeak) return false
         if (replayGainAlbumGain != other.replayGainAlbumGain) return false
@@ -201,6 +205,7 @@ data class SongEntity(
         result = 31 * result + (trackerNumber?.hashCode() ?: 0)
         result = 31 * result + (date?.hashCode() ?: 0)
         result = 31 * result + (lyrics?.hashCode() ?: 0)
+        result = 31 * result + (lyricSearchText?.hashCode() ?: 0)
         result = 31 * result + (replayGainTrackGain?.hashCode() ?: 0)
         result = 31 * result + (replayGainTrackPeak?.hashCode() ?: 0)
         result = 31 * result + (replayGainAlbumGain?.hashCode() ?: 0)

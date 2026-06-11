@@ -2,9 +2,12 @@ package com.lonx.lyrico.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lonx.lyrico.data.model.entity.SongEntity
+import com.lonx.lyrico.data.model.search.LocalLyricSearchResult
 import com.lonx.lyrico.data.model.search.LocalSearchUiState
 import com.lonx.lyrico.data.repository.LibraryIndexRepository
 import com.lonx.lyrico.data.song.search.SongSearchRepository
+import com.lonx.lyrico.utils.LyricsSearchTextExtractor
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,6 +18,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 @OptIn(FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class LocalSearchViewModel(
@@ -23,6 +27,12 @@ class LocalSearchViewModel(
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
+
+    init {
+        viewModelScope.launch {
+            songSearchRepository.rebuildMissingLyricSearchTextIndex()
+        }
+    }
 
     val searchQuery: StateFlow<String> = query
 
@@ -36,13 +46,17 @@ class LocalSearchViewModel(
                 combine(
                     songSearchRepository.searchSongsForLocalSearch(keyword),
                     libraryIndexRepository.searchAlbums(keyword),
-                    libraryIndexRepository.searchArtists(keyword)
-                ) { songs, albums, artists ->
+                    libraryIndexRepository.searchArtists(keyword),
+                    songSearchRepository.searchLyricsForLocalSearch(keyword)
+                ) { songs, albums, artists, lyricSongs ->
                     LocalSearchUiState(
                         query = keyword,
                         songs = songs,
                         albums = albums,
-                        artists = artists
+                        artists = artists,
+                        lyricMatches = lyricSongs.mapNotNull { song ->
+                            findLyricMatch(keyword, song)
+                        }
                     )
                 }
             }
@@ -55,5 +69,34 @@ class LocalSearchViewModel(
 
     fun onQueryChange(value: String) {
         query.value = value
+    }
+
+    private fun findLyricMatch(
+        keyword: String,
+        song: SongEntity
+    ): LocalLyricSearchResult? {
+        val normalizedKeyword = keyword.trim()
+        if (normalizedKeyword.isBlank()) return null
+
+        val matchedLine = searchableLyricLines(song)
+            .firstOrNull { line -> line.contains(normalizedKeyword, ignoreCase = true) }
+            ?: return null
+
+        return LocalLyricSearchResult(
+            song = song,
+            lyricLine = matchedLine
+        )
+    }
+
+    private fun searchableLyricLines(song: SongEntity): List<String> {
+        return (
+            song.lyricSearchText
+                .orEmpty()
+                .lineSequence()
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .toList() + LyricsSearchTextExtractor.extractLines(song.lyrics)
+            )
+            .distinct()
     }
 }

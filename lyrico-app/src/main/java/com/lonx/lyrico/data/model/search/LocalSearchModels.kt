@@ -9,5 +9,11 @@ data class LocalSearchUiState(
     val isSearching: Boolean = false,
     val songs: List<SongEntity> = emptyList(),
     val albums: List<AlbumEntity> = emptyList(),
-    val artists: List<ArtistEntity> = emptyList()
+    val artists: List<ArtistEntity> = emptyList(),
+    val lyricMatches: List<LocalLyricSearchResult> = emptyList()
+)
+
+data class LocalLyricSearchResult(
+    val song: SongEntity,
+    val lyricLine: String
 )
