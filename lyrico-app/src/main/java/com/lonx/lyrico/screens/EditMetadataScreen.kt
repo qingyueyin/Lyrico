@@ -45,7 +45,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.placeCursorAtEnd
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -111,6 +110,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.ResultRecipient
 import com.ramcosta.composedestinations.result.onResult
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -176,100 +176,6 @@ fun EditMetadataScreen(
     val replayGainCalculateProgress = uiState.replayGainCalculateProgress
     val originalTagData = uiState.originalTagData
     val editingTagData = uiState.editingTagData
-    val titleState = rememberMetadataTextFieldState(
-        value = editingTagData?.title.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(title = it) } }
-    )
-
-    val artistState = rememberMetadataTextFieldState(
-        value = editingTagData?.artist.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(artist = it) } }
-    )
-
-    val albumArtistState = rememberMetadataTextFieldState(
-        value = editingTagData?.albumArtist.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(albumArtist = it) } }
-    )
-
-    val albumState = rememberMetadataTextFieldState(
-        value = editingTagData?.album.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(album = it) } }
-    )
-
-    val dateState = rememberMetadataTextFieldState(
-        value = editingTagData?.date.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(date = it) } }
-    )
-
-    val languageState = rememberMetadataTextFieldState(
-        value = editingTagData?.language.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(language = it) } }
-    )
-
-    val genreState = rememberMetadataTextFieldState(
-        value = editingTagData?.genre.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(genre = it) } }
-    )
-
-    val trackNumberState = rememberMetadataTextFieldState(
-        value = editingTagData?.trackNumber.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(trackNumber = it) } }
-    )
-
-    val discNumberState = rememberMetadataTextFieldState(
-        value = editingTagData?.discNumber?.toString().orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(discNumber = it.toIntOrNull()) } }
-    )
-
-    val composerState = rememberMetadataTextFieldState(
-        value = editingTagData?.composer.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(composer = it) } }
-    )
-
-    val lyricistState = rememberMetadataTextFieldState(
-        value = editingTagData?.lyricist.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(lyricist = it) } }
-    )
-
-    val copyrightState = rememberMetadataTextFieldState(
-        value = editingTagData?.copyright.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(copyright = it) } }
-    )
-
-    val commentState = rememberMetadataTextFieldState(
-        value = editingTagData?.comment.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(comment = it) } }
-    )
-
-    val replayGainTrackGainState = rememberMetadataTextFieldState(
-        value = editingTagData?.replayGainTrackGain.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(replayGainTrackGain = it) } }
-    )
-
-    val replayGainTrackPeakState = rememberMetadataTextFieldState(
-        value = editingTagData?.replayGainTrackPeak.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(replayGainTrackPeak = it) } }
-    )
-
-    val replayGainAlbumGainState = rememberMetadataTextFieldState(
-        value = editingTagData?.replayGainAlbumGain.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(replayGainAlbumGain = it) } }
-    )
-
-    val replayGainAlbumPeakState = rememberMetadataTextFieldState(
-        value = editingTagData?.replayGainAlbumPeak.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(replayGainAlbumPeak = it) } }
-    )
-
-    val replayGainReferenceLoudnessState = rememberMetadataTextFieldState(
-        value = editingTagData?.replayGainReferenceLoudness.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(replayGainReferenceLoudness = it) } }
-    )
-
-    val lyricsState = rememberMetadataTextFieldState(
-        value = editingTagData?.lyrics.orEmpty(),
-        onValueChange = { viewModel.updateTag { copy(lyrics = it) } }
-    )
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -291,7 +197,7 @@ fun EditMetadataScreen(
 
     val imeVisible = WindowInsets.isImeVisible
     val isFloatingToolbarVisible = !imeVisible
-    
+
     // 各种 Launcher
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -398,10 +304,116 @@ fun EditMetadataScreen(
             activity.finish()
         }
     }
+
+    if (uiState.editingTagData == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    val titleState = rememberMetadataTextFieldState(
+        value = editingTagData?.title.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(title = it) } }
+    )
+
+    val artistState = rememberMetadataTextFieldState(
+        value = editingTagData?.artist.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(artist = it) } }
+    )
+
+    val albumArtistState = rememberMetadataTextFieldState(
+        value = editingTagData?.albumArtist.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(albumArtist = it) } }
+    )
+
+    val albumState = rememberMetadataTextFieldState(
+        value = editingTagData?.album.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(album = it) } }
+    )
+
+    val dateState = rememberMetadataTextFieldState(
+        value = editingTagData?.date.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(date = it) } }
+    )
+
+    val languageState = rememberMetadataTextFieldState(
+        value = editingTagData?.language.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(language = it) } }
+    )
+
+    val genreState = rememberMetadataTextFieldState(
+        value = editingTagData?.genre.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(genre = it) } }
+    )
+
+    val trackNumberState = rememberMetadataTextFieldState(
+        value = editingTagData?.trackNumber.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(trackNumber = it) } }
+    )
+
+    val discNumberState = rememberMetadataTextFieldState(
+        value = editingTagData?.discNumber?.toString().orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(discNumber = it.toIntOrNull()) } }
+    )
+
+    val composerState = rememberMetadataTextFieldState(
+        value = editingTagData?.composer.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(composer = it) } }
+    )
+
+    val lyricistState = rememberMetadataTextFieldState(
+        value = editingTagData?.lyricist.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(lyricist = it) } }
+    )
+
+    val copyrightState = rememberMetadataTextFieldState(
+        value = editingTagData?.copyright.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(copyright = it) } }
+    )
+
+    val commentState = rememberMetadataTextFieldState(
+        value = editingTagData?.comment.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(comment = it) } }
+    )
+
+    val replayGainTrackGainState = rememberMetadataTextFieldState(
+        value = editingTagData?.replayGainTrackGain.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(replayGainTrackGain = it) } }
+    )
+
+    val replayGainTrackPeakState = rememberMetadataTextFieldState(
+        value = editingTagData?.replayGainTrackPeak.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(replayGainTrackPeak = it) } }
+    )
+
+    val replayGainAlbumGainState = rememberMetadataTextFieldState(
+        value = editingTagData?.replayGainAlbumGain.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(replayGainAlbumGain = it) } }
+    )
+
+    val replayGainAlbumPeakState = rememberMetadataTextFieldState(
+        value = editingTagData?.replayGainAlbumPeak.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(replayGainAlbumPeak = it) } }
+    )
+
+    val replayGainReferenceLoudnessState = rememberMetadataTextFieldState(
+        value = editingTagData?.replayGainReferenceLoudness.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(replayGainReferenceLoudness = it) } }
+    )
+
+    val lyricsState = rememberMetadataTextFieldState(
+        value = editingTagData?.lyrics.orEmpty(),
+        onValueChange = { viewModel.updateTag { copy(lyrics = it) } }
+    )
+
     val topAppBarScrollBehavior = MiuixScrollBehavior()
     Box(
         modifier = Modifier.fillMaxSize()
-    ){
+    ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
@@ -496,7 +508,9 @@ fun EditMetadataScreen(
                                 MetadataInputField(
                                     label = stringResource(R.string.label_title),
                                     state = titleState,
-                                    isModified = !editingTagData?.title.isEqualIgnoringBlank(originalTagData?.title),
+                                    isModified = !editingTagData?.title.isEqualIgnoringBlank(
+                                        originalTagData?.title
+                                    ),
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(title = originalTagData?.title ?: "")
@@ -509,7 +523,9 @@ fun EditMetadataScreen(
                                 MetadataInputField(
                                     label = stringResource(R.string.label_artists),
                                     state = artistState,
-                                    isModified = !editingTagData?.artist.isEqualIgnoringBlank(originalTagData?.artist),
+                                    isModified = !editingTagData?.artist.isEqualIgnoringBlank(
+                                        originalTagData?.artist
+                                    ),
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(artist = originalTagData?.artist ?: "")
@@ -522,7 +538,9 @@ fun EditMetadataScreen(
                                 MetadataInputField(
                                     label = stringResource(R.string.label_album_artist),
                                     state = albumArtistState,
-                                    isModified = !editingTagData?.albumArtist.isEqualIgnoringBlank(originalTagData?.albumArtist),
+                                    isModified = !editingTagData?.albumArtist.isEqualIgnoringBlank(
+                                        originalTagData?.albumArtist
+                                    ),
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(albumArtist = originalTagData?.albumArtist ?: "")
@@ -535,7 +553,9 @@ fun EditMetadataScreen(
                                 MetadataInputField(
                                     label = stringResource(R.string.label_album),
                                     state = albumState,
-                                    isModified = !editingTagData?.album.isEqualIgnoringBlank(originalTagData?.album),
+                                    isModified = !editingTagData?.album.isEqualIgnoringBlank(
+                                        originalTagData?.album
+                                    ),
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(album = originalTagData?.album ?: "")
@@ -548,7 +568,9 @@ fun EditMetadataScreen(
                                 MetadataInputField(
                                     label = stringResource(R.string.label_year),
                                     state = dateState,
-                                    isModified = !editingTagData?.date.isEqualIgnoringBlank(originalTagData?.date),
+                                    isModified = !editingTagData?.date.isEqualIgnoringBlank(
+                                        originalTagData?.date
+                                    ),
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(date = originalTagData?.date ?: "")
@@ -561,7 +583,9 @@ fun EditMetadataScreen(
                                 MetadataInputField(
                                     label = stringResource(R.string.label_language),
                                     state = languageState,
-                                    isModified = !editingTagData?.language.isEqualIgnoringBlank(originalTagData?.language),
+                                    isModified = !editingTagData?.language.isEqualIgnoringBlank(
+                                        originalTagData?.language
+                                    ),
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(language = originalTagData?.language ?: "")
@@ -574,7 +598,9 @@ fun EditMetadataScreen(
                                 MetadataInputField(
                                     label = stringResource(R.string.label_genre),
                                     state = genreState,
-                                    isModified = !editingTagData?.genre.isEqualIgnoringBlank(originalTagData?.genre),
+                                    isModified = !editingTagData?.genre.isEqualIgnoringBlank(
+                                        originalTagData?.genre
+                                    ),
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(genre = originalTagData?.genre ?: "")
@@ -595,7 +621,9 @@ fun EditMetadataScreen(
                                 MetadataInputField(
                                     label = stringResource(R.string.label_track_number),
                                     state = trackNumberState,
-                                    isModified = !editingTagData?.trackNumber.isEqualIgnoringBlank(originalTagData?.trackNumber),
+                                    isModified = !editingTagData?.trackNumber.isEqualIgnoringBlank(
+                                        originalTagData?.trackNumber
+                                    ),
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(trackNumber = originalTagData?.trackNumber ?: "")
@@ -629,7 +657,9 @@ fun EditMetadataScreen(
                                 MetadataInputField(
                                     label = stringResource(R.string.label_composer),
                                     state = composerState,
-                                    isModified = !editingTagData?.composer.isEqualIgnoringBlank(originalTagData?.composer),
+                                    isModified = !editingTagData?.composer.isEqualIgnoringBlank(
+                                        originalTagData?.composer
+                                    ),
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(composer = originalTagData?.composer ?: "")
@@ -642,7 +672,9 @@ fun EditMetadataScreen(
                                 MetadataInputField(
                                     label = stringResource(R.string.label_lyricist),
                                     state = lyricistState,
-                                    isModified = !editingTagData?.lyricist.isEqualIgnoringBlank(originalTagData?.lyricist),
+                                    isModified = !editingTagData?.lyricist.isEqualIgnoringBlank(
+                                        originalTagData?.lyricist
+                                    ),
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(lyricist = originalTagData?.lyricist ?: "")
@@ -655,7 +687,9 @@ fun EditMetadataScreen(
                                 MetadataInputField(
                                     label = stringResource(R.string.label_copyright),
                                     state = copyrightState,
-                                    isModified = !editingTagData?.copyright.isEqualIgnoringBlank(originalTagData?.copyright),
+                                    isModified = !editingTagData?.copyright.isEqualIgnoringBlank(
+                                        originalTagData?.copyright
+                                    ),
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(copyright = originalTagData?.copyright)
@@ -668,7 +702,9 @@ fun EditMetadataScreen(
                                 MetadataInputField(
                                     label = stringResource(R.string.label_comment),
                                     state = commentState,
-                                    isModified = !editingTagData?.comment.isEqualIgnoringBlank(originalTagData?.comment),
+                                    isModified = !editingTagData?.comment.isEqualIgnoringBlank(
+                                        originalTagData?.comment
+                                    ),
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(comment = originalTagData?.comment ?: "")
@@ -758,7 +794,10 @@ fun EditMetadataScreen(
                                     ),
                                     onRevert = {
                                         viewModel.updateTag {
-                                            copy(replayGainTrackGain = originalTagData?.replayGainTrackGain ?: "")
+                                            copy(
+                                                replayGainTrackGain = originalTagData?.replayGainTrackGain
+                                                    ?: ""
+                                            )
                                         }
                                     }
                                 )
@@ -773,7 +812,10 @@ fun EditMetadataScreen(
                                     ),
                                     onRevert = {
                                         viewModel.updateTag {
-                                            copy(replayGainTrackPeak = originalTagData?.replayGainTrackPeak ?: "")
+                                            copy(
+                                                replayGainTrackPeak = originalTagData?.replayGainTrackPeak
+                                                    ?: ""
+                                            )
                                         }
                                     }
                                 )
@@ -788,7 +830,10 @@ fun EditMetadataScreen(
                                     ),
                                     onRevert = {
                                         viewModel.updateTag {
-                                            copy(replayGainAlbumGain = originalTagData?.replayGainAlbumGain ?: "")
+                                            copy(
+                                                replayGainAlbumGain = originalTagData?.replayGainAlbumGain
+                                                    ?: ""
+                                            )
                                         }
                                     }
                                 )
@@ -803,7 +848,10 @@ fun EditMetadataScreen(
                                     ),
                                     onRevert = {
                                         viewModel.updateTag {
-                                            copy(replayGainAlbumPeak = originalTagData?.replayGainAlbumPeak ?: "")
+                                            copy(
+                                                replayGainAlbumPeak = originalTagData?.replayGainAlbumPeak
+                                                    ?: ""
+                                            )
                                         }
                                     }
                                 )
@@ -819,7 +867,8 @@ fun EditMetadataScreen(
                                     onRevert = {
                                         viewModel.updateTag {
                                             copy(
-                                                replayGainReferenceLoudness = originalTagData?.replayGainReferenceLoudness ?: ""
+                                                replayGainReferenceLoudness = originalTagData?.replayGainReferenceLoudness
+                                                    ?: ""
                                             )
                                         }
                                     }
@@ -1103,7 +1152,7 @@ fun EditMetadataScreen(
             IconButton(
                 onClick = {
                     showPlainLyricsSheet = false
-                    if (!plainLyrics.isNullOrEmpty()){
+                    if (!plainLyrics.isNullOrEmpty()) {
                         scope.launch {
                             val clipData =
                                 ClipData.newPlainText("copy plain lyrics", plainLyrics)
@@ -1126,7 +1175,7 @@ fun EditMetadataScreen(
             modifier = Modifier
                 .padding(bottom = 32.dp)
                 .fillMaxWidth(),
-        ){
+        ) {
             val plainLyricsScrollState = rememberScrollState()
             Box(
                 modifier = Modifier
@@ -1436,8 +1485,11 @@ fun EditMetadataScreen(
                         )
                     )
                 }
-            ){
-                Text(text = stringResource(R.string.confirm), color = MiuixTheme.colorScheme.primary)
+            ) {
+                Text(
+                    text = stringResource(R.string.confirm),
+                    color = MiuixTheme.colorScheme.primary
+                )
             }
         },
         title = stringResource(R.string.action_format_lyrics_title),
@@ -2005,37 +2057,38 @@ private fun CustomMetadataFieldEditor(
         )
     }
 }
+
 @Composable
 private fun rememberMetadataTextFieldState(
     value: String,
     onValueChange: (String) -> Unit
 ): TextFieldState {
     val state = rememberTextFieldState(initialText = value)
-    val latestValue by rememberUpdatedState(value)
     val latestOnValueChange by rememberUpdatedState(onValueChange)
+    val textSyncState = remember(state) { MetadataTextSyncState(value) }
 
-    LaunchedEffect(value) {
-        if (state.text.toString() != value) {
-            state.setTextAndPlaceCursorAtEnd(value)
+    LaunchedEffect(value, state) {
+        if (value != textSyncState.lastTextSentToModel && state.text.toString() != value) {
+            textSyncState.lastTextSentToModel = value
+            state.edit {
+                replace(0, length, value)
+            }
         }
     }
 
     LaunchedEffect(state) {
         snapshotFlow { state.text.toString() }
             .distinctUntilChanged()
-            .collect { text ->
-                if (text != latestValue) {
+            .collectLatest { text ->
+                if (text != textSyncState.lastTextSentToModel) {
+                    textSyncState.lastTextSentToModel = text
                     latestOnValueChange(text)
                 }
             }
     }
-
     return state
 }
 
-private fun TextFieldState.setTextAndPlaceCursorAtEnd(text: String) {
-    edit {
-        replace(0, length, text)
-        placeCursorAtEnd()
-    }
-}
+private class MetadataTextSyncState(
+    var lastTextSentToModel: String
+)
