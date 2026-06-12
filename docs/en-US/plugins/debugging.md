@@ -4,7 +4,7 @@ Lyrico provides a desktop plugin devkit that can validate, run, and package plug
 
 The devkit focuses on manifest basics, entry files, function return values, standard `fields` keys, and `internal` size limits.
 
-Tool location:
+The devkit lives in the [Replica0110/Lyrico-Plugins](https://github.com/Replica0110/Lyrico-Plugins) plugin repository. Tool location:
 
 ```text
 tools/plugin-devkit/
@@ -17,7 +17,7 @@ tools/plugin-devkit/
 
 ## Run Directly
 
-From the project root:
+From the [Replica0110/Lyrico-Plugins](https://github.com/Replica0110/Lyrico-Plugins) repository root:
 
 ```bash
 node tools/plugin-devkit/src/cli.js validate ./my-plugin
