@@ -4,6 +4,7 @@ import com.lonx.lyrico.data.model.dao.AlbumSearchRow
 import com.lonx.lyrico.data.model.dao.ArtistSearchRow
 import com.lonx.lyrico.data.model.dao.SongFieldValue
 import com.lonx.lyrico.data.model.entity.SongEntity
+import com.lonx.lyrico.data.model.search.LocalLyricSearchResult
 import com.lonx.lyrico.data.model.search.LocalSearchType
 import kotlinx.coroutines.flow.Flow
 
@@ -15,7 +16,7 @@ interface SongSearchRepository {
 
     fun searchSongsForLocalSearch(query: String): Flow<List<SongEntity>>
 
-    fun searchLyricsForLocalSearch(query: String): Flow<List<SongEntity>>
+    fun searchLyricsForLocalSearch(query: String): Flow<List<LocalLyricSearchResult>>
 
     suspend fun rebuildMissingLyricSearchTextIndex()
 

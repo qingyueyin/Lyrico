@@ -1,7 +1,10 @@
 package com.lonx.lyrico.data.song.library
 
+import androidx.room.withTransaction
+import com.lonx.lyrico.data.LyricoDatabase
 import com.lonx.lyrico.data.model.dao.SongDao
 import com.lonx.lyrico.data.model.entity.SongEntity
+import com.lonx.lyrico.data.song.search.LyricFtsIndexer
 import com.lonx.lyrico.data.utils.SongQueryBuilder
 import com.lonx.lyrico.viewmodel.SortBy
 import com.lonx.lyrico.viewmodel.SortInfo
@@ -11,8 +14,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
 class SongLibraryRepositoryImpl(
-    private val songDao: SongDao
+    private val database: LyricoDatabase
 ) : SongLibraryRepository {
+    private val songDao: SongDao = database.songDao()
 
     override fun observeSongs(
         sortBy: SortBy,
@@ -49,31 +53,52 @@ class SongLibraryRepositoryImpl(
 
     override suspend fun upsertSongs(songs: List<SongEntity>) {
         withContext(Dispatchers.IO) {
-            if (songs.isNotEmpty()) songDao.upsertAll(songs)
+            if (songs.isNotEmpty()) {
+                database.withTransaction {
+                    songDao.upsertAll(songs)
+                    LyricFtsIndexer.replaceSongs(songDao, songs)
+                }
+            }
         }
     }
 
     override suspend fun updateSong(song: SongEntity) {
         withContext(Dispatchers.IO) {
-            songDao.update(song)
+            database.withTransaction {
+                songDao.update(song)
+                LyricFtsIndexer.replaceSong(songDao, song)
+            }
         }
     }
 
     override suspend fun updateSongs(songs: List<SongEntity>) {
         withContext(Dispatchers.IO) {
-            if (songs.isNotEmpty()) songDao.upsertAll(songs)
+            if (songs.isNotEmpty()) {
+                database.withTransaction {
+                    songDao.upsertAll(songs)
+                    LyricFtsIndexer.replaceSongs(songDao, songs)
+                }
+            }
         }
     }
 
     override suspend fun deleteSongsByUris(uris: List<String>) {
         withContext(Dispatchers.IO) {
-            if (uris.isNotEmpty()) songDao.deleteByUris(uris)
+            if (uris.isNotEmpty()) {
+                database.withTransaction {
+                    songDao.deleteByUris(uris)
+                    songDao.deleteLyricFtsByUris(uris)
+                }
+            }
         }
     }
 
     override suspend fun clearAll() {
         withContext(Dispatchers.IO) {
-            songDao.clear()
+            database.withTransaction {
+                songDao.clear()
+                songDao.clearLyricFts()
+            }
         }
     }
 }

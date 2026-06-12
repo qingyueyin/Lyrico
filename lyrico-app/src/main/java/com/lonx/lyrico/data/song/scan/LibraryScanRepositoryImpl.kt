@@ -13,6 +13,7 @@ import com.lonx.lyrico.data.repository.AppLogRepository
 import com.lonx.lyrico.data.repository.LibraryIndexRepository
 import com.lonx.lyrico.data.repository.SettingsRepository
 import com.lonx.lyrico.data.song.mapper.SongMetadataMapper
+import com.lonx.lyrico.data.song.search.LyricFtsIndexer
 import com.lonx.lyrico.data.song.tag.AudioTagReadOptions
 import com.lonx.lyrico.data.song.tag.AudioTagRepository
 import com.lonx.lyrico.utils.MediaScanner
@@ -188,7 +189,9 @@ class LibraryScanRepositoryImpl(
 
             database.withTransaction {
                 songsToUpsert.chunked(BATCH_SIZE).forEach { chunk ->
-                    songDao.upsertAll(chunk.map { it.entity })
+                    val songs = chunk.map { it.entity }
+                    songDao.upsertAll(songs)
+                    LyricFtsIndexer.replaceSongs(songDao, songs)
                     chunk.forEach { metadata ->
                         database.songCustomTagKeyDao().replaceForSong(
                             songUri = metadata.entity.uri,
@@ -201,6 +204,7 @@ class LibraryScanRepositoryImpl(
 
                 allDeletedUris.chunked(BATCH_SIZE).forEach { chunk ->
                     songDao.deleteByUris(chunk.toList())
+                    songDao.deleteLyricFtsByUris(chunk.toList())
                     database.songCustomTagKeyDao().deleteForSongs(chunk.toList())
                 }
 

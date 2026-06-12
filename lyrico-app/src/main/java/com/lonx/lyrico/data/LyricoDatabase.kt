@@ -38,7 +38,7 @@ import com.lonx.lyrico.data.model.entity.SourcePluginEntity
         SourcePluginEntity::class,
         SongCustomTagKeyEntity::class
     ],
-    version = 18,
+    version = 19,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
@@ -337,6 +337,29 @@ abstract class LyricoDatabase : RoomDatabase() {
                     """.trimIndent()
                 )
             }
+        }
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                createLyricFtsTable(db)
+            }
+        }
+
+        fun createLyricFtsTable(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE VIRTUAL TABLE IF NOT EXISTS song_lyric_lines_fts
+                USING fts4(
+                    songUri,
+                    lineIndex,
+                    lineText,
+                    indexedText,
+                    notindexed=songUri,
+                    notindexed=lineIndex,
+                    notindexed=lineText,
+                    tokenize=unicode61
+                )
+                """.trimIndent()
+            )
         }
     }
 }

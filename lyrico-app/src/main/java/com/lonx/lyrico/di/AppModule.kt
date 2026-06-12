@@ -1,6 +1,7 @@
 package com.lonx.lyrico.di
 
 import androidx.room.Room
+import androidx.room.RoomDatabase
 import com.lonx.lyrico.BuildConfig
 import com.lonx.lyrico.data.LyricoDatabase
 import com.lonx.lyrico.data.SharedSelectionManager
@@ -115,6 +116,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import java.io.File
 import java.util.concurrent.TimeUnit
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 val appModule = module {
 
@@ -192,8 +194,18 @@ val appModule = module {
                 LyricoDatabase.MIGRATION_13_14,
                 LyricoDatabase.MIGRATION_15_16,
                 LyricoDatabase.MIGRATION_16_17,
-                LyricoDatabase.MIGRATION_17_18
+                LyricoDatabase.MIGRATION_17_18,
+                LyricoDatabase.MIGRATION_18_19
             )
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    LyricoDatabase.createLyricFtsTable(db)
+                }
+
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    LyricoDatabase.createLyricFtsTable(db)
+                }
+            })
             .build()
     }
     single { get<LyricoDatabase>().batchTaskDao() }
@@ -218,8 +230,8 @@ val appModule = module {
     single<SongFileRepository> { SongFileRepositoryImpl(androidContext(), get(), get()) }
     single { SortKeyUpdater() }
     single { SongMetadataMapper(get()) }
-    single<SongLibraryRepository> { SongLibraryRepositoryImpl(get<LyricoDatabase>().songDao()) }
-    single<SongSearchRepository> { SongSearchRepositoryImpl(get<LyricoDatabase>().songDao()) }
+    single<SongLibraryRepository> { SongLibraryRepositoryImpl(get()) }
+    single<SongSearchRepository> { SongSearchRepositoryImpl(get()) }
     single<LibraryScanRepository> {
         LibraryScanRepositoryImpl(androidContext(), get(), get(), get(), get(), get(), get(), get())
     }

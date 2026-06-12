@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.RawQuery
+import androidx.room.SkipQueryVerification
 import androidx.room.Update
 import androidx.room.Upsert
 import androidx.sqlite.db.SupportSQLiteQuery
@@ -33,6 +34,102 @@ data class SongFieldValue(
     val sourceUri: String,
     val value: String
 )
+
+data class SongLyricsForFts(
+    val id: Long,
+    val uri: String,
+    val lyrics: String?,
+    val lyricSearchText: String?
+)
+
+data class LocalLyricSearchRow(
+    val matchedLine: String,
+    val id: Long,
+    val folderId: Long,
+    val mediaId: Long,
+    val source: String,
+    val filePath: String,
+    val fileName: String,
+    val fileSize: Long,
+    val fileExtension: String?,
+    val title: String?,
+    val artist: String?,
+    val albumArtist: String?,
+    val discNumber: Int?,
+    val composer: String?,
+    val lyricist: String?,
+    val comment: String?,
+    val album: String?,
+    val genre: String?,
+    val language: String?,
+    val trackerNumber: String?,
+    val date: String?,
+    val copyright: String?,
+    val rating: Int?,
+    val replayGainTrackGain: String?,
+    val replayGainTrackPeak: String?,
+    val replayGainAlbumGain: String?,
+    val replayGainAlbumPeak: String?,
+    val replayGainReferenceLoudness: String?,
+    val durationMilliseconds: Int,
+    val bitrate: Int,
+    val sampleRate: Int,
+    val channels: Int,
+    val fileLastModified: Long,
+    val fileAdded: Long,
+    val dbUpdateTime: Long,
+    val titleGroupKey: String,
+    val titleSortKey: String,
+    val artistGroupKey: String,
+    val artistSortKey: String,
+    val uri: String
+) {
+    fun toSongEntity(): SongEntity {
+        return SongEntity(
+            id = id,
+            folderId = folderId,
+            mediaId = mediaId,
+            source = source,
+            filePath = filePath,
+            fileName = fileName,
+            fileSize = fileSize,
+            fileExtension = fileExtension,
+            title = title,
+            artist = artist,
+            albumArtist = albumArtist,
+            discNumber = discNumber,
+            composer = composer,
+            lyricist = lyricist,
+            comment = comment,
+            album = album,
+            genre = genre,
+            language = language,
+            trackerNumber = trackerNumber,
+            date = date,
+            lyrics = null,
+            lyricSearchText = null,
+            copyright = copyright,
+            rating = rating,
+            replayGainTrackGain = replayGainTrackGain,
+            replayGainTrackPeak = replayGainTrackPeak,
+            replayGainAlbumGain = replayGainAlbumGain,
+            replayGainAlbumPeak = replayGainAlbumPeak,
+            replayGainReferenceLoudness = replayGainReferenceLoudness,
+            durationMilliseconds = durationMilliseconds,
+            bitrate = bitrate,
+            sampleRate = sampleRate,
+            channels = channels,
+            fileLastModified = fileLastModified,
+            fileAdded = fileAdded,
+            dbUpdateTime = dbUpdateTime,
+            titleGroupKey = titleGroupKey,
+            titleSortKey = titleSortKey,
+            artistGroupKey = artistGroupKey,
+            artistSortKey = artistSortKey,
+            uri = uri
+        )
+    }
+}
 
 data class AlbumSearchRow(
     val album: String,
@@ -174,22 +271,6 @@ interface SongDao {
     fun searchSongsForLocalSearch(query: String): Flow<List<SongEntity>>
 
     @Query("""
-        SELECT s.* FROM songs AS s
-        INNER JOIN folders AS f ON s.folderId = f.id
-        WHERE f.isIgnored = 0
-          AND s.lyricSearchText IS NOT NULL
-          AND s.lyricSearchText LIKE '%' || :query || '%'
-        ORDER BY
-            CASE
-                WHEN s.lyricSearchText LIKE :query || '%' THEN 0
-                ELSE 1
-            END,
-            s.title ASC,
-            s.fileName ASC
-    """)
-    fun searchLyricsForLocalSearch(query: String): Flow<List<SongEntity>>
-
-    @Query("""
         SELECT * FROM songs
         WHERE lyrics IS NOT NULL
           AND TRIM(lyrics) != ''
@@ -205,6 +286,51 @@ interface SongDao {
         uri: String,
         lyricSearchText: String?
     )
+
+    @SkipQueryVerification
+    @Query("SELECT COUNT(*) FROM song_lyric_lines_fts")
+    suspend fun getLyricFtsRowCount(): Int
+
+    @SkipQueryVerification
+    @Query("DELETE FROM song_lyric_lines_fts")
+    suspend fun clearLyricFts()
+
+    @SkipQueryVerification
+    @Query("DELETE FROM song_lyric_lines_fts WHERE songUri IN (:uris)")
+    suspend fun deleteLyricFtsByUris(uris: List<String>)
+
+    @SkipQueryVerification
+    @Query(
+        """
+        INSERT INTO song_lyric_lines_fts(songUri, lineIndex, lineText, indexedText)
+        VALUES(:songUri, :lineIndex, :lineText, :indexedText)
+        """
+    )
+    suspend fun insertLyricFtsLine(
+        songUri: String,
+        lineIndex: Int,
+        lineText: String,
+        indexedText: String
+    )
+
+    @Query("""
+        SELECT id, uri, lyrics, lyricSearchText
+        FROM songs
+        WHERE id > :lastId
+          AND lyrics IS NOT NULL
+          AND TRIM(lyrics) != ''
+        ORDER BY id ASC
+        LIMIT :limit
+    """)
+    suspend fun getSongLyricsForFtsAfterId(
+        lastId: Long,
+        limit: Int
+    ): List<SongLyricsForFts>
+
+    @RawQuery(observedEntities = [SongEntity::class, FolderEntity::class])
+    fun searchLyricFtsForLocalSearch(
+        query: SupportSQLiteQuery
+    ): Flow<List<LocalLyricSearchRow>>
 
     @Query("""
         SELECT
